@@ -1,11 +1,12 @@
 package org.example;
 
-import java.awt.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.stream;
+import static org.example.CollisionUtils.intersects;
 import static org.example.Vec2.zero;
 import static org.example.Wall.*;
 
@@ -42,27 +43,31 @@ public class PhysicsHandler {
         var bounds = gamePanel.getBounds();
         appliers.forEach(applier -> {
             var object = applier.getObject();
-            var box = object.getCollision();
-            if (!bounds.contains(box)) {
+            var box = object.getCollisionPoly();
+            if (!bounds.contains(box.getBounds())) {
                 var walls = new ArrayList<Wall>();
-                if (box.y < bounds.y) {
+                int leftX = stream(box.xpoints).min().orElseThrow(),
+                        upY = stream(box.ypoints).min().orElseThrow(),
+                        rightX = stream(box.xpoints).max().orElseThrow(),
+                        downY = stream(box.ypoints).max().orElseThrow();
+                if (upY < bounds.y) {
                     object.setY(bounds.y);
                     walls.add(UP);
                 }
 
-                if (box.x < bounds.x) {
+                if (leftX < bounds.x) {
                     object.setX(bounds.x);
                     walls.add(LEFT);
                 }
 
-                if (box.y + box.height > bounds.y + bounds.height) {
-                    object.setY(bounds.y + bounds.height - box.height);
+                if (downY > bounds.y + bounds.height) {
+                    object.setY(bounds.y + bounds.height - (downY - upY));
                     walls.add(DOWN);
                     applier.getGravityVelocity().setY(0);
                 }
 
-                if (box.x + box.width > bounds.x + bounds.width) {
-                    object.setX(bounds.x + bounds.width - box.width);
+                if (rightX > bounds.x + bounds.width) {
+                    object.setX(bounds.x + bounds.width - (rightX - leftX));
                     walls.add(RIGHT);
                 }
 
@@ -82,7 +87,7 @@ public class PhysicsHandler {
             var first = appliers.get(i).getObject();
             for (int j = i + 1; j < appliers.size(); j++) {
                 var second = appliers.get(j).getObject();
-                if (first.hasCollision() && second.hasCollision() && first.getCollision().intersects(second.getCollision())) {
+                if (first.hasCollision() && second.hasCollision() && intersects(first.getCollisionPoly(), second.getCollisionPoly())) {
                     first.handleObjectCollision(second);
                     second.handleObjectCollision(first);
                 }

@@ -22,7 +22,7 @@ public interface PhysicsObject extends GameObj {
 
     Vec2 getPosition();
 
-    Rectangle getCollision();
+    Polygon getCollisionPoly();
 
     double getMass();
 

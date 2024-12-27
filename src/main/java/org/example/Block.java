@@ -62,7 +62,7 @@ public class Block implements PhysicsObject {
     }
 
     @Override
-    public Rectangle getCollision() {
+    public Polygon getCollisionPoly() {
         return new Rectangle(round((float) position.getX() + 2), round((float) position.getY()), WIDTH - 4, HEIGHT);
     }
 

@@ -63,8 +63,8 @@ public class Player implements PhysicsObject {
         if (isRightClicked()) {
             var block = new Block(position.getX(), position.getY(), Color.GREEN);
             var intersects = false;
-            for (var other : blocks.stream().map(Block::getCollision).toList()) {
-                if (block.getCollision().intersects(other)) {
+            for (var other : blocks.stream().map(Block::getCollisionPoly).toList()) {
+                if (block.getCollisionPoly().intersects(other)) {
                     intersects = true;
                     break;
                 }
@@ -140,7 +140,7 @@ public class Player implements PhysicsObject {
     }
 
     @Override
-    public Rectangle getCollision() {
+    public Polygon getCollisionPoly() {
         return new Rectangle(round((float) position.getX()), round((float) position.getY()), WIDTH, HEIGHT);
     }
 
