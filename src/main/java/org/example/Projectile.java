@@ -121,11 +121,7 @@ public class Projectile implements PhysicsObject {
         if (obj instanceof Block) {
             var intersection = getFittedBox().intersection(obj.getCollision());
             var rect = obj.getCollision();
-            var objCenter = new Point(
-                    (int) round(obj.getX() + rect.getWidth() / 2d),
-                    (int) round(obj.getY() + rect.getHeight() / 2d)
-            );
-            var corners = getCorners(objCenter, rect);
+            var corners = getCorners(rect);
             for (var corner : corners) {
                 if (intersection.contains(corner)) {
                     bounce(OBJECT_DAMPING, UP, LEFT);
@@ -153,7 +149,11 @@ public class Projectile implements PhysicsObject {
 
     }
 
-    private static Point[] getCorners(Point center, Rectangle rect) {
+    private static Point[] getCorners(Rectangle rect) {
+        var center = new Point(
+                (int) round(rect.getX() + rect.getWidth() / 2d),
+                (int) round(rect.getY() + rect.getHeight() / 2d)
+        );
         var width = (int) round(rect.getWidth());
         var height = (int) round(rect.getHeight());
         return new Point[]{
