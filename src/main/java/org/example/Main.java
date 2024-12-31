@@ -2,7 +2,11 @@ package org.example;
 
 import javax.swing.*;
 
+import java.awt.*;
+
 import static java.lang.Thread.startVirtualThread;
+import static org.example.PolyUtils.from;
+import static org.example.PolyUtils.getCorners;
 
 public class Main {
     public static void main(String[] args) {

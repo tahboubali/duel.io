@@ -1,12 +1,11 @@
 package org.example;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.stream;
-import static org.example.CollisionUtils.intersects;
+import static org.example.PolyUtils.intersects;
 import static org.example.Vec2.zero;
 import static org.example.Wall.*;
 
@@ -99,7 +98,6 @@ public class PhysicsHandler {
         var applier = new GravityApplier(object);
         appliers.add(applier);
         object.setGravityApplier(applier);
-
     }
 
     public static class GravityApplier {

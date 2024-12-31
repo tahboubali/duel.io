@@ -4,10 +4,10 @@ import com.google.gson.annotations.Expose;
 
 import java.awt.*;
 import java.awt.geom.Line2D;
-import java.util.ArrayList;
 import java.util.HashSet;
 
 import static java.lang.Math.*;
+import static org.example.PolyUtils.*;
 import static org.example.Wall.*;
 
 public class Projectile implements PhysicsObject {
@@ -47,8 +47,8 @@ public class Projectile implements PhysicsObject {
     public void draw(Graphics2D g2d) {
         double centerX = getX() + PROJ_WIDTH / 2d;
         double centerY = getY() + PROJ_HEIGHT / 2d;
-        g2d.setColor(Color.BLACK);
-        g2d.draw(getFittedBox());
+//        g2d.setColor(Color.BLACK);
+//        g2d.draw(getFittedBox());
         var transform = g2d.getTransform();
         g2d.setColor(Color.BLUE);
         g2d.rotate(angle, centerX, centerY);
@@ -59,7 +59,7 @@ public class Projectile implements PhysicsObject {
     }
 
     private boolean outOfBounds() {
-        return !(gamePanel.getBounds().contains(this.getCollisionPoly()));
+        return !(gamePanel.getBounds().contains(this.getCollisionPoly().getBounds()));
     }
 
     public boolean shouldDespawn() {
@@ -107,7 +107,13 @@ public class Projectile implements PhysicsObject {
 
     @Override
     public Polygon getCollisionPoly() {
-        return new Rectangle(round((float) position.getX()), round((float) position.getY()), PROJ_WIDTH, PROJ_HEIGHT);
+        System.out.println(angle);
+        return from(
+                new Rectangle(
+                        round((float) position.getX()), round((float) position.getY()), PROJ_WIDTH, PROJ_HEIGHT
+                ),
+                angle
+        );
     }
 
     @Override
@@ -117,26 +123,15 @@ public class Projectile implements PhysicsObject {
 
     @Override
     public void handleObjectCollision(PhysicsObject obj) {
-        var velocity = getVelocity().add(getGravityApplier().getPrevVelocity());
-        var gV = gravityApplier.getGravityVelocity();
         if (obj instanceof Block) {
-            var intersection = getFittedBox().intersection(obj.getCollisionPoly());
+            var intersection = getFittedBox().intersection(obj.getCollisionPoly().getBounds());
             var poly = obj.getCollisionPoly();
-            var objCenter = new Point(
-                    (int) round(obj.getX() + poly.getWidth() / 2d),
-                    (int) round(obj.getY() + poly.getHeight() / 2d)
-            );
+            // get lines
+            var lines = new HashSet<Line2D>();
             var corners = getCorners(poly);
             for (var corner : corners) {
-                if (intersection.contains(corner)) {
-                    bounce(OBJECT_DAMPING, UP, LEFT);
-                    return;
-                }
-            }
-            var lines = new HashSet<Line2D>();
-            for (var corner : corners) {
                 for (var other : corners) {
-                    if (corner.distance(other) < hypot(poly.getWidth(), poly.getHeight()))
+                    if (corner.distance(other) < hypot(getWidth(poly), getHeight(poly)))
                         lines.add(new Line2D.Double(corner, other));
                 }
             }
@@ -151,14 +146,6 @@ public class Projectile implements PhysicsObject {
                 }
             }
         }
-    }
-
-    private static Point[] getCorners(Polygon poly) {
-        var corners = new ArrayList<Point>();
-        for (int i = 0; i < poly.npoints; ++i) {
-            corners.add(new Point(poly.xpoints[i], poly.ypoints[i]));
-        }
-        return corners.toArray(new Point[0]);
     }
 
     @Override

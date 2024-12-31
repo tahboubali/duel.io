@@ -5,7 +5,9 @@ import java.time.Duration;
 
 import static java.lang.Math.round;
 import static java.lang.System.currentTimeMillis;
+import static org.example.PolyUtils.from;
 import static org.example.PhysicsHandler.GravityApplier;
+import static org.example.PolyUtils.getCorners;
 
 public class Block implements PhysicsObject {
     private Color color;
@@ -31,6 +33,12 @@ public class Block implements PhysicsObject {
         var point = position.asPoint();
         g2d.setColor(color);
         g2d.fillRect(point.x, point.y, WIDTH, HEIGHT);
+        var corners = getCorners(getCollisionPoly());
+        int rad = 3;
+        g2d.setColor(Color.RED);
+        for (var corner : corners) {
+            g2d.fillOval(corner.x - rad, corner.y - rad, rad * 2, rad * 2);
+        }
     }
 
     public double getX() {
@@ -63,7 +71,7 @@ public class Block implements PhysicsObject {
 
     @Override
     public Polygon getCollisionPoly() {
-        return new Rectangle(round((float) position.getX() + 2), round((float) position.getY()), WIDTH - 4, HEIGHT);
+        return from(new Rectangle(round((float) position.getX()), round((float) position.getY()), WIDTH, HEIGHT));
     }
 
     public boolean shouldDespawn() {
@@ -77,12 +85,13 @@ public class Block implements PhysicsObject {
 
     @Override
     public void handleObjectCollision(PhysicsObject obj) {
-        double factor = .9;
-        color = new Color((int) round(color.getRed() * factor),
-                (int) round(color.getGreen() * factor),
-                (int) round(color.getBlue() * factor));
-        if (obj instanceof Projectile)
+        if (obj instanceof Projectile) {
+            double factor = .9;
+            color = new Color((int) round(color.getRed() * factor),
+                    (int) round(color.getGreen() * factor),
+                    (int) round(color.getBlue() * factor));
             return;
+        }
         var velocity = getGravityApplier().getPrevVelocity();
         var objVelocity = obj.getGravityApplier().getPrevVelocity();
         double OBJECT_DAMPING = .8;

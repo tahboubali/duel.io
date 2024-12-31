@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.List;
 
 import static java.lang.Math.*;
+import static org.example.PolyUtils.getHeight;
+import static org.example.PolyUtils.getWidth;
 
 public class Shooter implements GameObj {
     private final List<Projectile> projectiles;
@@ -39,7 +41,7 @@ public class Shooter implements GameObj {
     private void updateDirection() {
         var mousePosition = gamePanel.getMousePosition();
         if (mousePosition == null) return;
-        var playerCenterPos = player.getPosition().add(Vec2.of(player.getCollisionPoly().width / 2d, player.getCollisionPoly().height / 2d));
+        var playerCenterPos = player.getPosition().add(Vec2.of(getWidth(player.getCollisionPoly()) / 2d, getHeight(player.getCollisionPoly())  / 2d));
         facingLeft = abs(playerCenterPos.angleTo(mousePosition)) < PI / 2;
         var gunPos = Vec2.of(getX(), getY());
         var delta = Vec2.of(mousePosition).sub(gunPos);
@@ -60,9 +62,9 @@ public class Shooter implements GameObj {
         var r2 = new Rectangle(getX(), getY(), 11, 20);
         if (facingLeft) {
             r1.y += r2.height - r1.height;
-            xOffset = -player.getCollisionPoly().width / 2;
+            xOffset = -getWidth(player.getCollisionPoly()) / 2;
         } else {
-            xOffset = player.getCollisionPoly().width / 2;
+            xOffset = getWidth(player.getCollisionPoly()) / 2;
         }
         xOffset -= r1.width / 2;
         g2d.drawString(String.valueOf(toDegrees(getAngle())), 10, 100);
@@ -73,11 +75,11 @@ public class Shooter implements GameObj {
     }
 
     private int getX() {
-        return (int) round(player.getX() + player.getCollisionPoly().width / 2d) + xOffset;
+        return (int) round(player.getX() + getWidth(player.getCollisionPoly()) / 2d) + xOffset;
     }
 
     private int getY() {
-        return (int) round(player.getY() + player.getCollisionPoly().height / 2d) + yOffset;
+        return (int) round(player.getY() + getHeight(player.getCollisionPoly())  / 2d) + yOffset;
     }
 
     private double getAngle() {

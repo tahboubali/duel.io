@@ -3,6 +3,8 @@ package org.example;
 import java.awt.*;
 
 import static java.lang.Math.round;
+import static org.example.PolyUtils.from;
+import static org.example.PolyUtils.intersects;
 import static org.example.KeyHandler.*;
 import static org.example.MouseHandler.isLeftClicked;
 import static org.example.MouseHandler.isRightClicked;
@@ -64,7 +66,7 @@ public class Player implements PhysicsObject {
             var block = new Block(position.getX(), position.getY(), Color.GREEN);
             var intersects = false;
             for (var other : blocks.stream().map(Block::getCollisionPoly).toList()) {
-                if (block.getCollisionPoly().intersects(other)) {
+                if (intersects(block.getCollisionPoly(), other)) {
                     intersects = true;
                     break;
                 }
@@ -141,7 +143,7 @@ public class Player implements PhysicsObject {
 
     @Override
     public Polygon getCollisionPoly() {
-        return new Rectangle(round((float) position.getX()), round((float) position.getY()), WIDTH, HEIGHT);
+        return from(new Rectangle((int)round(position.getX()), (int) round(position.getY()), WIDTH, HEIGHT));
     }
 
     @Override
