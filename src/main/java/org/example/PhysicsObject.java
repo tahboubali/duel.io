@@ -26,6 +26,8 @@ public interface PhysicsObject extends GameObj {
 
     void handleObjectCollision(PhysicsObject physObj);
 
+    double getAngle();
+
     void setAngle(double angle);
 
     Vec2 getVelocity();

@@ -46,8 +46,6 @@ public class Projectile implements PhysicsObject {
     public void draw(Graphics2D g2d) {
         double centerX = getX() + PROJ_WIDTH / 2d;
         double centerY = getY() + PROJ_HEIGHT / 2d;
-//        g2d.setColor(Color.BLACK);
-//        g2d.draw(getFittedBox());
         var transform = g2d.getTransform();
         g2d.setColor(Color.BLUE);
         g2d.rotate(angle, centerX, centerY);
@@ -149,6 +147,11 @@ public class Projectile implements PhysicsObject {
                 }
             }
         }
+    }
+
+    @Override
+    public double getAngle() {
+        return angle;
     }
 
     @Override

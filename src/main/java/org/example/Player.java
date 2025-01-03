@@ -157,6 +157,11 @@ public class Player implements PhysicsObject {
     }
 
     @Override
+    public double getAngle() {
+        return 0;
+    }
+
+    @Override
     public void handleWallCollision(Wall... walls) {
 
     }

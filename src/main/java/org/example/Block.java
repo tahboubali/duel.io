@@ -103,6 +103,11 @@ public class Block implements PhysicsObject {
     }
 
     @Override
+    public double getAngle() {
+        return 0;
+    }
+
+    @Override
     public void handleWallCollision(Wall... walls) {
         bounce(.2, walls);
     }

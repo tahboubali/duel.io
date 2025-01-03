@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static java.lang.Math.abs;
+import static java.lang.System.nanoTime;
 import static java.util.Arrays.stream;
 import static org.example.PolyUtils.*;
 import static org.example.Vec2.zero;
@@ -46,6 +48,9 @@ public class PhysicsHandler {
             var object = applier.getObject();
             var box = object.getCollisionPoly();
             var bBounds = box.getBounds();
+            var original = rotate(box, -object.getAngle());
+            double distX = abs(stream(box.xpoints).min().orElseThrow() - stream(original.xpoints).min().orElseThrow());
+            double distY = abs(stream(box.ypoints).min().orElseThrow() - stream(original.ypoints).min().orElseThrow());
             if (!bounds.contains(bBounds) && collisionCooledDown(object)) {
                 var walls = new ArrayList<Wall>();
                 int leftX = stream(box.xpoints).min().orElseThrow(),
@@ -53,27 +58,22 @@ public class PhysicsHandler {
                         rightX = stream(box.xpoints).max().orElseThrow(),
                         downY = stream(box.ypoints).max().orElseThrow();
                 if (upY <= 0) {
-                    System.out.println("COLLISION");
-                    object.setY(0);
+                    object.setY(distY);
                     walls.add(UP);
                 }
 
                 if (leftX <= 0) {
-                    System.out.println("COLLISION");
-                    object.setX(0);
+                    object.setX(distX);
                     walls.add(LEFT);
                 }
 
                 if (downY >= bounds.height) {
-                    if (object instanceof Projectile)
-                        System.out.println("COLLISION BRIAN");
                     object.setY(bounds.y + bounds.height - downY + upY);
                     walls.add(DOWN);
                     applier.getGravityVelocity().setY(0);
                 }
 
                 if (rightX >= bounds.width) {
-                    System.out.println("COLLISION BRIAN2");
                     object.setX(bounds.x + bounds.width - rightX + leftX);
                     walls.add(RIGHT);
                 }
@@ -99,15 +99,16 @@ public class PhysicsHandler {
                         && intersects(first.getCollisionPoly(), second.getCollisionPoly())) {
                     first.handleObjectCollision(second);
                     second.handleObjectCollision(first);
-                    first.setLastCollision(System.nanoTime());
-                    first.setLastCollision(System.nanoTime());
+                    long now = nanoTime();
+                    first.setLastCollision(now);
+                    first.setLastCollision(now);
                 }
             }
         }
     }
 
     private static boolean collisionCooledDown(PhysicsObject object) {
-        return System.nanoTime() - object.lastCollision() > COLLISION_COOLDOWN_NANOS;
+        return nanoTime() - object.lastCollision() > COLLISION_COOLDOWN_NANOS;
     }
 
     public void trackObject(PhysicsObject object) {

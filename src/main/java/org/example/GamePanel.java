@@ -19,6 +19,7 @@ public class GamePanel extends JPanel implements Runnable {
     private boolean running;
 
     public GamePanel() {
+        setBackground(Color.DARK_GRAY);
         setPreferredSize(SIZE);
         addKeyListener(KeyHandler.getInstance());
         addMouseListener(MouseHandler.getInstance());

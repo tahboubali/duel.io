@@ -16,6 +16,7 @@ public class Main {
     private static void run() {
         var window = new JFrame();
         window.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        window.setUndecorated(true);
         var game = new GamePanel();
         window.add(game);
         window.pack();
