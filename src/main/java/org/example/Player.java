@@ -27,9 +27,9 @@ public class Player implements PhysicsObject {
     private boolean jumping;
     private final GamePanel gamePanel;
     private Vec2 velocity;
-    private final Vec2 combinedVelocity = Vec2.zero();
     private final String name;
     private PhysicsHandler.GravityApplier gravityApplier;
+    private long lastCollision;
 
     public Player(GamePanel gamePanel, String name) {
         this.gamePanel = gamePanel;
@@ -164,11 +164,6 @@ public class Player implements PhysicsObject {
     @Override
     public void setAngle(double angle) {}
 
-    @Override
-    public Vec2 initDirection() {
-        return Vec2.zero();
-    }
-
     public Vec2 getVelocity() {
         return velocity;
     }
@@ -194,5 +189,15 @@ public class Player implements PhysicsObject {
     @Override
     public PhysicsHandler.GravityApplier getGravityApplier() {
         return gravityApplier;
+    }
+
+    @Override
+    public void setLastCollision(long timeNanos) {
+        this.lastCollision = timeNanos;
+    }
+
+    @Override
+    public long lastCollision() {
+        return lastCollision;
     }
 }

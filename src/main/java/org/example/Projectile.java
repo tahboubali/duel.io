@@ -20,10 +20,10 @@ public class Projectile implements PhysicsObject {
     @Expose
     private double angle;
     private final GamePanel gamePanel;
-    private final Vec2 initDirection;
     private static final int DESPAWN_TIME = 1000;
     private long timeSettled;
     private PhysicsHandler.GravityApplier gravityApplier;
+    private long lastCollision;
 
     public Projectile(GamePanel gamePanel, double x, double y, Vec2 direction) {
         int range = 10;
@@ -34,7 +34,6 @@ public class Projectile implements PhysicsObject {
         this.velocity.set(cos(angle), sin(angle));
         this.position = Vec2.of(x, y);
         this.gamePanel = gamePanel;
-        this.initDirection = direction;
     }
 
     @Override
@@ -56,14 +55,20 @@ public class Projectile implements PhysicsObject {
         g2d.setColor(Color.GREEN);
         g2d.fillOval((int) centerX - 5, (int) centerY - 5, 10, 10);
         g2d.setTransform(transform);
+        g2d.setColor(Color.RED);
+        g2d.fill(getCollisionPoly());
     }
 
     private boolean outOfBounds() {
-        return !(gamePanel.getBounds().contains(this.getCollisionPoly().getBounds()));
+        var c = !(gamePanel.getBounds().contains(this.getCollisionPoly().getBounds()));
+        if (c) {
+            System.out.println(getCollisionPoly().getBounds());
+        }
+        return c;
     }
 
     public boolean shouldDespawn() {
-        return outOfBounds() || (timeSettled != 0 && System.currentTimeMillis() - timeSettled >= DESPAWN_TIME);
+        return /*outOfBounds() ||;*/ (timeSettled != 0 && System.currentTimeMillis() - timeSettled >= DESPAWN_TIME);
     }
 
     private Rectangle getFittedBox() {
@@ -107,7 +112,6 @@ public class Projectile implements PhysicsObject {
 
     @Override
     public Polygon getCollisionPoly() {
-        System.out.println(angle);
         return from(
                 new Rectangle(
                         round((float) position.getX()), round((float) position.getY()), PROJ_WIDTH, PROJ_HEIGHT
@@ -129,12 +133,11 @@ public class Projectile implements PhysicsObject {
             // get lines
             var lines = new HashSet<Line2D>();
             var corners = getCorners(poly);
-            for (var corner : corners) {
-                for (var other : corners) {
+            for (var corner : corners)
+                for (var other : corners)
                     if (corner.distance(other) < hypot(getWidth(poly), getHeight(poly)))
                         lines.add(new Line2D.Double(corner, other));
-                }
-            }
+
             for (var line : lines) {
                 if (intersection.intersectsLine(line)) {
                     if (line.getP1().getX() == line.getP2().getX()) {
@@ -156,10 +159,6 @@ public class Projectile implements PhysicsObject {
     @Override
     public void setAngle(double angle) {
         this.angle = angle;
-    }
-
-    public Vec2 initDirection() {
-        return initDirection;
     }
 
     public Vec2 getVelocity() {
@@ -184,5 +183,15 @@ public class Projectile implements PhysicsObject {
     @Override
     public PhysicsHandler.GravityApplier getGravityApplier() {
         return gravityApplier;
+    }
+
+    @Override
+    public void setLastCollision(long timeNanos) {
+        this.lastCollision = timeNanos;
+    }
+
+    @Override
+    public long lastCollision() {
+        return lastCollision;
     }
 }

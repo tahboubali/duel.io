@@ -34,6 +34,7 @@ public class Shooter implements GameObj {
     @Override
     public void update(double dt) {
         updateDirection();
+        projectiles.stream().filter(Projectile::shouldDespawn).forEach(_ -> System.out.println("SHOULD DESPAWN"));
         projectiles.removeIf(Projectile::shouldDespawn);
         projectiles.forEach(projectile -> projectile.update(dt));
     }

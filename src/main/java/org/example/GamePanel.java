@@ -16,7 +16,6 @@ public class GamePanel extends JPanel implements Runnable {
     private final PhysicsHandler physicsHandler;
     private final ConnectionHandler connectionHandler;
     private final TitleScreenPanel titleScreen;
-
     private boolean running;
 
     public GamePanel() {

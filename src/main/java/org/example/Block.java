@@ -16,6 +16,7 @@ public class Block implements PhysicsObject {
     private static final Duration DESPAWN_TIME = Duration.ofSeconds(60);
     private final long createdMillis;
     private GravityApplier gravityApplier;
+    private long lastCollision;
 
     public Block(double x, double y, Color color) {
         this.color = color;
@@ -111,10 +112,6 @@ public class Block implements PhysicsObject {
 
     }
 
-    public Vec2 initDirection() {
-        return Vec2.zero();
-    }
-
     public Vec2 getVelocity() {
         return Vec2.zero();
     }
@@ -137,5 +134,15 @@ public class Block implements PhysicsObject {
     @Override
     public PhysicsHandler.GravityApplier getGravityApplier() {
         return gravityApplier;
+    }
+
+    @Override
+    public void setLastCollision(long timeNanos) {
+        this.lastCollision = timeNanos;
+    }
+
+    @Override
+    public long lastCollision() {
+        return lastCollision;
     }
 }

@@ -14,10 +14,6 @@ public interface PhysicsObject extends GameObj {
 
     void setY(double y);
 
-    default void setPosition(double x, double y) {
-        setPosition(Vec2.of(x, y));
-    }
-
     void setPosition(Vec2 vec2);
 
     Vec2 getPosition();
@@ -31,8 +27,6 @@ public interface PhysicsObject extends GameObj {
     void handleObjectCollision(PhysicsObject physObj);
 
     void setAngle(double angle);
-
-    Vec2 initDirection();
 
     Vec2 getVelocity();
 
@@ -49,10 +43,10 @@ public interface PhysicsObject extends GameObj {
             var prev = getGravityApplier().getPrevVelocity();
             switch (wall) {
                 case UP, DOWN -> {
-                    velocity.set(velocity.mul(Vec2.of(damping, -damping)));
-                    gravityV.set(prev.mul(Vec2.of(damping, -damping)));
+                    velocity.set(velocity.mul(Vec2.of(damping, -(damping - .08))));
+                    gravityV.set(prev.mul(Vec2.of(damping, -(damping - .05))));
                 }
-                case LEFT, RIGHT -> velocity.set(velocity.mul(Vec2.of(-damping, damping)));
+                case LEFT, RIGHT -> velocity.set(velocity.mul(Vec2.of(-(damping - .08), damping)));
             }
         });
     }
@@ -60,4 +54,8 @@ public interface PhysicsObject extends GameObj {
     void setGravityApplier(PhysicsHandler.GravityApplier applier);
 
     PhysicsHandler.GravityApplier getGravityApplier();
+
+    long lastCollision();
+
+    void setLastCollision(long timeNanos);
 }

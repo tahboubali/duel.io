@@ -2,6 +2,7 @@ package org.example;
 
 import java.awt.*;
 import java.awt.geom.Area;
+import java.awt.geom.PathIterator;
 import java.util.ArrayList;
 
 import static java.lang.Math.round;
@@ -31,26 +32,19 @@ public class PolyUtils {
     }
 
     public static Polygon from(Rectangle rect) {
-        // Create a Polygon and add the four corners of the rectangle
-        Polygon polygon = new Polygon();
-
-        polygon.addPoint(rect.x, rect.y); // Top-left corner
-        polygon.addPoint(rect.x + rect.width, rect.y); // Top-right corner
-        polygon.addPoint(rect.x + rect.width, rect.y + rect.height); // Bottom-right corner
-        polygon.addPoint(rect.x, rect.y + rect.height); // Bottom-left corner
-
-        return polygon;
+        return from(new Area(rect));
     }
 
     public static Polygon from(Area area) {
         var poly = new Polygon();
-        area.getPathIterator(null).currentSegment(new double[6]);
         var pathIterator = area.getPathIterator(null);
         double[] coords = new double[6];
 
         while (!pathIterator.isDone()) {
-            pathIterator.currentSegment(coords);
-            poly.addPoint((int) coords[0], (int) coords[1]);
+            int type = pathIterator.currentSegment(coords);
+            if (type == PathIterator.SEG_MOVETO || type == PathIterator.SEG_LINETO) {
+                poly.addPoint((int) coords[0], (int) coords[1]);
+            }
             pathIterator.next();
         }
 
@@ -70,6 +64,7 @@ public class PolyUtils {
             poly.xpoints[i] = (int) round((x - center.x) * cos(theta) - (y - center.y) * sin(theta) + center.x);
             poly.ypoints[i] = (int) round((x - center.x) * sin(theta) + (y - center.y) * cos(theta) + center.y);
         }
+
         return poly;
     }
 
