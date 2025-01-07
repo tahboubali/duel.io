@@ -34,7 +34,6 @@ public class Shooter implements GameObj {
     @Override
     public void update(double dt) {
         updateDirection();
-        projectiles.stream().filter(Projectile::shouldDespawn).forEach(_ -> System.out.println("SHOULD DESPAWN"));
         projectiles.removeIf(Projectile::shouldDespawn);
         projectiles.forEach(projectile -> projectile.update(dt));
     }
@@ -75,12 +74,16 @@ public class Shooter implements GameObj {
         g2d.fill(r2);
     }
 
-    private int getX() {
+    public int getX() {
         return (int) round(player.getX() + getWidth(player.getCollisionPoly()) / 2d) + xOffset;
     }
 
-    private int getY() {
+    public int getY() {
         return (int) round(player.getY() + getHeight(player.getCollisionPoly())  / 2d) + yOffset;
+    }
+
+    public Vec2 getDirection() {
+        return direction;
     }
 
     private double getAngle() {

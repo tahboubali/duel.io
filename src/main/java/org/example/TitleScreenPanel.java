@@ -30,7 +30,7 @@ public class TitleScreenPanel extends JPanel {
 
     public Map<String, String> getInput() {
         try {
-            Thread.sleep(Duration.ofSeconds(3));
+            Thread.sleep(Duration.ofSeconds(0));
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

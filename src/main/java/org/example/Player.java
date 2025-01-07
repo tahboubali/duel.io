@@ -3,12 +3,11 @@ package org.example;
 import java.awt.*;
 
 import static java.lang.Math.round;
-import static org.example.PolyUtils.from;
-import static org.example.PolyUtils.intersects;
 import static org.example.KeyHandler.*;
 import static org.example.MouseHandler.isLeftClicked;
 import static org.example.MouseHandler.isRightClicked;
 import static org.example.ConnectionHandler.*;
+import static org.example.PolyUtils.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +16,7 @@ public class Player implements PhysicsObject {
     public static final int WIDTH = 30;
     public static final int HEIGHT = 66;
     private static final int SHOT_COOLDOWN_MILLIS = 320,
-            BUILD_COOLDOWN_MILLIS = 100; // 350
+            BUILD_COOLDOWN_MILLIS = 350; // 350
     private final static double SPEED = .5;
     private final static double JUMP_VELOCITY = 1.4;
     private final Shooter shooter;
@@ -63,7 +62,10 @@ public class Player implements PhysicsObject {
             }
         }
         if (isRightClicked()) {
-            var block = new Block(position.getX(), position.getY(), Color.GREEN);
+            var direction = shooter.getDirection().mul(100);
+            var block = new Block(position.getX() + WIDTH / 2d + direction.getX() - Block.WIDTH / 2d,
+                    position.getY() + HEIGHT / 2d + direction.getY() - Block.HEIGHT / 2d, Color.GREEN);
+            block.getVelocity().set(direction.mul(.002));
             var intersects = false;
             for (var other : blocks.stream().map(Block::getCollisionPoly).toList()) {
                 if (intersects(block.getCollisionPoly(), other)) {
@@ -101,6 +103,7 @@ public class Player implements PhysicsObject {
         int offset = fontMetrics.getHeight() + 20;
         int nameX = point.x - usernameWidth / 2 + WIDTH / 2;
         int nameY = (point.y - offset) - fontMetrics.getHeight() / 2 + HEIGHT / 2;
+        g2d.drawString(jumping + "", 40, 40);
         g2d.setColor(Color.BLACK);
         g2d.setStroke(new BasicStroke(5f));
         g2d.drawString(name, nameX, nameY);
@@ -143,7 +146,7 @@ public class Player implements PhysicsObject {
 
     @Override
     public Polygon getCollisionPoly() {
-        return from(new Rectangle((int)round(position.getX()), (int) round(position.getY()), WIDTH, HEIGHT));
+        return from(new Rectangle((int) round(position.getX()), (int) round(position.getY()), WIDTH, HEIGHT));
     }
 
     @Override
@@ -152,8 +155,13 @@ public class Player implements PhysicsObject {
     }
 
     @Override
-    public void handleObjectCollision(PhysicsObject physObj) {
-
+    public void handleObjectCollision(PhysicsObject obj) {
+        if (obj instanceof Block) {
+            if (position.getY() + HEIGHT >= obj.getY() && getY() < obj.getY()) {
+                jumping = false;
+                getGravityApplier().getGravityVelocity().setY(0);
+            }
+        }
     }
 
     @Override
@@ -167,7 +175,8 @@ public class Player implements PhysicsObject {
     }
 
     @Override
-    public void setAngle(double angle) {}
+    public void setAngle(double angle) {
+    }
 
     public Vec2 getVelocity() {
         return velocity;
@@ -183,7 +192,7 @@ public class Player implements PhysicsObject {
 
     @Override
     public boolean hasCollision() {
-        return false;
+        return true;
     }
 
     @Override

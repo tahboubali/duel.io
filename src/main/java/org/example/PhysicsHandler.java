@@ -1,16 +1,19 @@
 package org.example;
 
+import java.awt.geom.Line2D;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static java.lang.Math.abs;
+import static java.lang.Math.*;
 import static java.lang.System.nanoTime;
 import static java.util.Arrays.stream;
 import static org.example.PolyUtils.*;
 import static org.example.Vec2.zero;
 import static org.example.Wall.*;
+import static org.example.Vec2.*;
 
 public class PhysicsHandler {
     public static final double GRAVITATIONAL_ACCELERATION = 0.005;
@@ -42,52 +45,110 @@ public class PhysicsHandler {
         });
     }
 
-    private void handleWallCollisions() {
-        var bounds = gamePanel.getBounds();
-        appliers.forEach(applier -> {
-            var object = applier.getObject();
-            var box = object.getCollisionPoly();
-            var bBounds = box.getBounds();
-            var original = rotate(box, -object.getAngle());
-            double distX = abs(stream(box.xpoints).min().orElseThrow() - stream(original.xpoints).min().orElseThrow());
-            double distY = abs(stream(box.ypoints).min().orElseThrow() - stream(original.ypoints).min().orElseThrow());
-            if (!bounds.contains(bBounds) && collisionCooledDown(object)) {
-                var walls = new ArrayList<Wall>();
-                int leftX = stream(box.xpoints).min().orElseThrow(),
-                        upY = stream(box.ypoints).min().orElseThrow(),
-                        rightX = stream(box.xpoints).max().orElseThrow(),
-                        downY = stream(box.ypoints).max().orElseThrow();
-                if (upY <= 0) {
-                    object.setY(distY);
-                    walls.add(UP);
+//    private void handleWallCollisions() {
+//        var bounds = gamePanel.getBounds();
+//        appliers.forEach(applier -> {
+//            var object = applier.getObject();
+//            var box = object.getCollisionPoly();
+//            var bBounds = box.getBounds();
+//            var original = rotate(box, -object.getAngle());
+//            double distX = abs(stream(box.xpoints).min().orElseThrow() - stream(original.xpoints).min().orElseThrow());
+//            double distY = abs(stream(box.ypoints).min().orElseThrow() - stream(original.ypoints).min().orElseThrow());
+//            if (!bounds.contains(bBounds) && collisionCooledDown(object)) {
+//                var walls = new ArrayList<Wall>();
+//                int leftX = stream(box.xpoints).min().orElseThrow(),
+//                        upY = stream(box.ypoints).min().orElseThrow(),
+//                        rightX = stream(box.xpoints).max().orElseThrow(),
+//                        downY = stream(box.ypoints).max().orElseThrow();
+//                if (upY <= 0) {
+//                    object.setY(distY);
+//                    walls.add(UP);
+//                }
+//
+//                if (leftX <= 0) {
+//                    object.setX(distX);
+//                    walls.add(LEFT);
+//                }
+//
+//                if (downY >= bounds.height) {
+//                    object.setY(bounds.y + bounds.height - downY + upY - distY);
+//                    walls.add(DOWN);
+//                    applier.getGravityVelocity().setY(0);
+//                }
+//
+//                if (rightX >= bounds.width) {
+//                    object.setX(bounds.x + bounds.width - rightX + leftX - distX * 2);
+//                    walls.add(RIGHT);
+//                }
+//
+//                walls.forEach(wall -> applier.gravityVelocity.set(
+//                        applier.gravityVelocity.sub(
+//                                wall.normal().mul(2 * applier.gravityVelocity.dot(wall.normal()))
+//                        )
+//                ));
+//
+//                object.handleWallCollision(walls.toArray(new Wall[0]));
+//            }
+//        });
+//    }
+private void handleWallCollisions() {
+    var bounds = gamePanel.getBounds();
+    appliers.forEach(applier -> {
+        var object = applier.getObject();
+        var box = object.getCollisionPoly();
+        var rotatedBox = rotate(box, -object.getAngle());
+
+        double minX = Double.MAX_VALUE, minY = Double.MAX_VALUE;
+        double maxX = Double.MIN_VALUE, maxY = Double.MIN_VALUE;
+
+        for (int i = 0; i < rotatedBox.xpoints.length; i++) {
+            minX = Math.min(minX, rotatedBox.xpoints[i]);
+            maxX = Math.max(maxX, rotatedBox.xpoints[i]);
+            minY = Math.min(minY, rotatedBox.ypoints[i]);
+            maxY = Math.max(maxY, rotatedBox.ypoints[i]);
+        }
+
+        double distX = maxX - minX;
+        double distY = maxY - minY;
+
+        if (!bounds.contains(box.getBounds()) && collisionCooledDown(object)) {
+            var walls = new ArrayList<Wall>();
+
+            if (minY < 0) {
+                object.setY(distY);
+                walls.add(UP);
+            }
+            if (minX < 0) {
+                object.setX(distX);
+                walls.add(LEFT);
+            }
+            if (maxY > bounds.height) {
+                object.setY(bounds.height - distY);
+                walls.add(DOWN);
+                applier.getGravityVelocity().setY(0);
+            }
+            if (maxX > bounds.width) {
+                object.setX(bounds.width - distX);
+                walls.add(RIGHT);
+            }
+
+            if (!walls.isEmpty()) {
+                Vec2 cumulativeReflection = Vec2.zero();
+
+                for (Wall wall : walls) {
+                    Vec2 wallNormal = wall.normal();
+                    cumulativeReflection = cumulativeReflection.add(
+                            wallNormal.mul(-2 * applier.gravityVelocity.dot(wallNormal))
+                    );
                 }
 
-                if (leftX <= 0) {
-                    object.setX(distX);
-                    walls.add(LEFT);
-                }
-
-                if (downY >= bounds.height) {
-                    object.setY(bounds.y + bounds.height - downY + upY);
-                    walls.add(DOWN);
-                    applier.getGravityVelocity().setY(0);
-                }
-
-                if (rightX >= bounds.width) {
-                    object.setX(bounds.x + bounds.width - rightX + leftX);
-                    walls.add(RIGHT);
-                }
-
-                walls.forEach(wall -> applier.gravityVelocity.set(
-                        applier.gravityVelocity.sub(
-                                wall.normal().mul(2 * applier.gravityVelocity.dot(wall.normal()))
-                        )
-                ));
-
+                applier.gravityVelocity.set(applier.gravityVelocity.add(cumulativeReflection));
                 object.handleWallCollision(walls.toArray(new Wall[0]));
             }
-        });
-    }
+        }
+    });
+}
+
 
     private void handleObjectCollisions() {
         for (int i = 0; i < appliers.size(); i++) {
@@ -97,6 +158,19 @@ public class PhysicsHandler {
                 if ((collisionCooledDown(first) || collisionCooledDown(second))
                         && first.hasCollision() && second.hasCollision()
                         && intersects(first.getCollisionPoly(), second.getCollisionPoly())) {
+                    if (!(second instanceof Projectile || first instanceof Projectile)) {
+                        var intersection = first.getCollisionPoly().getBounds().intersection(second.getCollisionPoly().getBounds());
+                        var poly = first.getCollisionPoly();
+                        var lines = new HashSet<Line2D>();
+                        var corners = getCorners(poly);
+                        for (var corner : corners)
+                            for (var other : corners) {
+                                var line = new Line2D.Double(corner, other);
+                                if (corner.distance(other) < hypot(getWidth(poly), getHeight(poly)) && intersection.intersectsLine(line))
+                                    lines.add(line);
+                            }
+                        restrict(first, second);
+                    }
                     first.handleObjectCollision(second);
                     second.handleObjectCollision(first);
                     long now = nanoTime();
@@ -104,6 +178,31 @@ public class PhysicsHandler {
                     first.setLastCollision(now);
                 }
             }
+        }
+    }
+
+    private static void restrict(PhysicsObject first, PhysicsObject second) {
+        var firstBounds = first.getCollisionPoly().getBounds();
+        var secondBounds = second.getCollisionPoly().getBounds();
+
+        double overlapX = Math.min(
+                firstBounds.getMaxX() - secondBounds.getMinX(),
+                secondBounds.getMaxX() - firstBounds.getMinX()
+        );
+
+        double overlapY = Math.min(
+                firstBounds.getMaxY() - secondBounds.getMinY(),
+                secondBounds.getMaxY() - firstBounds.getMinY()
+        );
+
+        if (overlapX < overlapY) {
+            double separation = overlapX * (firstBounds.getCenterX() > secondBounds.getCenterX() ? 1 : -1);
+            first.setX(first.getPosition().getX() + separation / 2);
+            second.setX(second.getPosition().getX() - separation / 2);
+        } else {
+            double separation = overlapY * (firstBounds.getCenterY() > secondBounds.getCenterY() ? 1 : -1);
+            first.setY(first.getPosition().getY() + separation / 2);
+            second.setY(second.getPosition().getY() - separation / 2);
         }
     }
 

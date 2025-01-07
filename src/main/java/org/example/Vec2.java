@@ -1,6 +1,7 @@
 package org.example;
 
 import java.awt.*;
+import java.awt.geom.Point2D;
 import java.util.function.BinaryOperator;
 
 import static java.lang.Math.*;
@@ -148,6 +149,18 @@ public class Vec2 {
 
     public static Vec2 right() {
         return new Vec2(1, 0);
+    }
+
+    public static Vec2 delta(Point p1, Point p2) {
+        return new Vec2(p2.getX() - p1.getX(), p2.getY() - p1.getY());
+    }
+
+    public static Vec2 delta(Point2D p1, Point2D p2) {
+        return new Vec2(p2.getX() - p1.getX(), p2.getY() - p1.getY());
+    }
+
+    public static Vec2 abs(Vec2 vec2) {
+        return new Vec2(Math.abs(vec2.x), Math.abs(vec2.y));
     }
 
     @Override

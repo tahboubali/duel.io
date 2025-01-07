@@ -12,21 +12,23 @@ import static org.example.PolyUtils.getCorners;
 public class Block implements PhysicsObject {
     private Color color;
     private final Vec2 position;
-    private static final int WIDTH = 40 * 2, HEIGHT = 40 * 2;
+    public static final int WIDTH = (int) round(40 * 1.78), HEIGHT = (int) round(40 * 1.78);
     private static final Duration DESPAWN_TIME = Duration.ofSeconds(60);
     private final long createdMillis;
     private GravityApplier gravityApplier;
     private long lastCollision;
+    private final Vec2 velocity;
 
     public Block(double x, double y, Color color) {
         this.color = color;
         position = Vec2.of(x, y);
         createdMillis = currentTimeMillis();
+        velocity = Vec2.zero();
     }
 
     @Override
     public void update(double dt) {
-
+        position.set(position.add(velocity));
     }
 
     @Override
@@ -93,6 +95,9 @@ public class Block implements PhysicsObject {
                     (int) round(color.getBlue() * factor));
             return;
         }
+        if (obj instanceof Player) {
+            return;
+        }
         var velocity = getGravityApplier().getPrevVelocity();
         var objVelocity = obj.getGravityApplier().getPrevVelocity();
         double OBJECT_DAMPING = .8;
@@ -118,7 +123,7 @@ public class Block implements PhysicsObject {
     }
 
     public Vec2 getVelocity() {
-        return Vec2.zero();
+        return velocity;
     }
 
     @Override

@@ -2,7 +2,9 @@ package org.example;
 
 import java.awt.*;
 import java.awt.geom.Area;
+import java.awt.geom.Line2D;
 import java.awt.geom.PathIterator;
+import java.awt.geom.Point2D;
 import java.util.ArrayList;
 
 import static java.lang.Math.round;
@@ -35,7 +37,7 @@ public class PolyUtils {
         return from(new Area(rect));
     }
 
-    public static Polygon from(Area area) {
+    private static Polygon from(Area area) {
         var poly = new Polygon();
         var pathIterator = area.getPathIterator(null);
         double[] coords = new double[6];
@@ -87,6 +89,18 @@ public class PolyUtils {
             corners.add(new Point(poly.xpoints[i], poly.ypoints[i]));
         }
         return corners.toArray(new Point[0]);
+    }
+
+    public static Line2D[] getLines(Polygon poly) {
+        var lines = new ArrayList<Line2D.Double>();
+        for (int i = 1; i < poly.npoints; i++) {
+            lines.add(new Line2D.Double(new Point2D.Double(poly.xpoints[i - 1], poly.ypoints[i - 1]),
+                    new Point2D.Double(poly.xpoints[i], poly.ypoints[i])));
+        }
+        lines.add(new Line2D.Double(new Point2D.Double(poly.xpoints[poly.npoints - 1], poly.ypoints[poly.npoints - 1]),
+                new Point2D.Double(poly.xpoints[0], poly.ypoints[0])));
+        return lines.toArray(new Line2D[0]);
+
     }
 
     public static Polygon intersection(Polygon first, Polygon second) {
