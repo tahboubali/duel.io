@@ -13,7 +13,6 @@ import static java.util.Arrays.stream;
 import static org.example.PolyUtils.*;
 import static org.example.Vec2.zero;
 import static org.example.Wall.*;
-import static org.example.Vec2.*;
 
 public class PhysicsHandler {
     public static final double GRAVITATIONAL_ACCELERATION = 0.005;
@@ -62,7 +61,8 @@ public class PhysicsHandler {
                         downY = stream(box.ypoints).max().orElseThrow();
                 if (upY <= 0) {
                     object.setY(distY);
-//                    walls.add(UP);
+                    if (!(object instanceof Player))
+                        walls.add(UP);
                 }
 
                 if (leftX <= 0) {
@@ -101,24 +101,18 @@ public class PhysicsHandler {
                 if ((collisionCooledDown(first) || collisionCooledDown(second))
                         && first.hasCollision() && second.hasCollision()
                         && intersects(first.getCollisionPoly(), second.getCollisionPoly())) {
-                    if (!(second instanceof Projectile || first instanceof Projectile)) {
-                        var intersection = first.getCollisionPoly().getBounds().intersection(second.getCollisionPoly().getBounds());
-                        var poly = first.getCollisionPoly();
-                        var lines = new HashSet<Line2D>();
-                        var corners = getCorners(poly);
-                        for (var corner : corners)
-                            for (var other : corners) {
-                                var line = new Line2D.Double(corner, other);
-                                if (corner.distance(other) < hypot(getWidth(poly), getHeight(poly)) && intersection.intersectsLine(line))
-                                    lines.add(line);
-                            }
+                    boolean skip = second instanceof Projectile && first instanceof Projectile;
+                    skip = skip || (first instanceof Player player && second instanceof Projectile projectile && projectile.getPlayer() == player);
+                    skip = skip || (second instanceof Player player && first instanceof Projectile projectile && projectile.getPlayer() == player);
+
+                    if (!skip) {
                         restrict(first, second);
+                        first.handleObjectCollision(second);
+                        second.handleObjectCollision(first);
+                        long now = nanoTime();
+                        first.setLastCollision(now);
+                        first.setLastCollision(now);
                     }
-                    first.handleObjectCollision(second);
-                    second.handleObjectCollision(first);
-                    long now = nanoTime();
-                    first.setLastCollision(now);
-                    first.setLastCollision(now);
                 }
             }
         }

@@ -12,18 +12,20 @@ import static org.example.PolyUtils.getCorners;
 public class Block implements PhysicsObject {
     private Color color;
     private final Vec2 position;
-    public static final int WIDTH = (int) round(40 * 1.78), HEIGHT = (int) round(40 * 1.78);
+    public static final int WIDTH = (int) round(40 * 1.76), HEIGHT = (int) round(40 * 1.76);
     private static final Duration DESPAWN_TIME = Duration.ofSeconds(60);
     private final long createdMillis;
     private GravityApplier gravityApplier;
     private long lastCollision;
     private final Vec2 velocity;
+    private final Player player;
 
-    public Block(double x, double y, Color color) {
+    public Block(double x, double y, Color color, Player player) {
         this.color = color;
         position = Vec2.of(x, y);
         createdMillis = currentTimeMillis();
         velocity = Vec2.zero();
+        this.player = player;
     }
 
     @Override
@@ -154,5 +156,9 @@ public class Block implements PhysicsObject {
     @Override
     public long lastCollision() {
         return lastCollision;
+    }
+
+    public Player getPlayer() {
+        return player;
     }
 }

@@ -26,7 +26,7 @@ public class Shooter implements GameObj {
     }
 
     public void shoot() {
-        var bullet = new Projectile(gamePanel, getX(), getY(), direction);
+        var bullet = new Projectile(gamePanel, getX(), getY(), direction, player);
         projectiles.add(bullet);
         gamePanel.addPhysicsObject(bullet);
     }

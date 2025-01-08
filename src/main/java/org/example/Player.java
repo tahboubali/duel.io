@@ -64,7 +64,7 @@ public class Player implements PhysicsObject {
         if (isRightClicked()) {
             var direction = shooter.getDirection().mul(100);
             var block = new Block(position.getX() + WIDTH / 2d + direction.getX() - Block.WIDTH / 2d,
-                    position.getY() + HEIGHT / 2d + direction.getY() - Block.HEIGHT / 2d, Color.GREEN);
+                    position.getY() + HEIGHT / 2d + direction.getY() - Block.HEIGHT / 2d, Color.GREEN, this);
             block.getVelocity().set(direction.mul(.002));
             var intersects = false;
             for (var other : blocks.stream().map(Block::getCollisionPoly).toList()) {
@@ -110,8 +110,8 @@ public class Player implements PhysicsObject {
         g2d.setColor(Color.BLACK);
         g2d.setStroke(new BasicStroke(2.3f));
         g2d.drawRect(point.x, point.y, WIDTH, HEIGHT);
-        shooter.draw(g2d);
         synchronized (blocks) {
+            shooter.draw(g2d);
             blocks.forEach(block -> block.draw(g2d));
         }
     }

@@ -27,9 +27,9 @@ public class TitleScreenPanel extends JPanel {
         submitBtn.setBounds(btnBounds);
         submitBtn.setFont(new Font(getFont().getFontName(), getFont().getStyle(), 48));
         submitBtn.addActionListener(_ -> {
-            setUsername(text.getText());
-            System.out.println("clicked!");
-            System.out.println(text.getText());
+            if (!text.getText().isBlank()) {
+                setUsername(text.getText());
+            }
         });
         submitBtn.setFocusable(true);
         add(submitBtn);
@@ -48,11 +48,19 @@ public class TitleScreenPanel extends JPanel {
         this.username = username;
     }
 
-    private String getUsername() {return username;}
+    private String getUsername() {
+        return username;
+    }
 
     public Map<String, String> getInput() {
-        while (getUsername() == null) {
-            System.out.println("hi");getUsername();}
+        long POLL_RATE = 100;
+        do {
+            try {
+                Thread.sleep(POLL_RATE);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        } while (getUsername() == null);
         return Map.of("username", getUsername());
     }
 }

@@ -24,8 +24,9 @@ public class Projectile implements PhysicsObject {
     private long timeSettled;
     private PhysicsHandler.GravityApplier gravityApplier;
     private long lastCollision;
+    private final Player player;
 
-    public Projectile(GamePanel gamePanel, double x, double y, Vec2 direction) {
+    public Projectile(GamePanel gamePanel, double x, double y, Vec2 direction, Player player) {
         int range = 10;
         int min = -5;
         var recoil = (Math.random() * range + 1) + min;
@@ -34,6 +35,7 @@ public class Projectile implements PhysicsObject {
         this.velocity.set(cos(angle), sin(angle));
         this.position = Vec2.of(x, y);
         this.gamePanel = gamePanel;
+        this.player = player;
     }
 
     @Override
@@ -195,5 +197,9 @@ public class Projectile implements PhysicsObject {
     @Override
     public long lastCollision() {
         return lastCollision;
+    }
+
+    public Player getPlayer() {
+        return player;
     }
 }
