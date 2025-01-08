@@ -45,109 +45,52 @@ public class PhysicsHandler {
         });
     }
 
-//    private void handleWallCollisions() {
-//        var bounds = gamePanel.getBounds();
-//        appliers.forEach(applier -> {
-//            var object = applier.getObject();
-//            var box = object.getCollisionPoly();
-//            var bBounds = box.getBounds();
-//            var original = rotate(box, -object.getAngle());
-//            double distX = abs(stream(box.xpoints).min().orElseThrow() - stream(original.xpoints).min().orElseThrow());
-//            double distY = abs(stream(box.ypoints).min().orElseThrow() - stream(original.ypoints).min().orElseThrow());
-//            if (!bounds.contains(bBounds) && collisionCooledDown(object)) {
-//                var walls = new ArrayList<Wall>();
-//                int leftX = stream(box.xpoints).min().orElseThrow(),
-//                        upY = stream(box.ypoints).min().orElseThrow(),
-//                        rightX = stream(box.xpoints).max().orElseThrow(),
-//                        downY = stream(box.ypoints).max().orElseThrow();
-//                if (upY <= 0) {
-//                    object.setY(distY);
+    private void handleWallCollisions() {
+        var bounds = gamePanel.getBounds();
+        appliers.forEach(applier -> {
+            var object = applier.getObject();
+            var box = object.getCollisionPoly();
+            var bBounds = box.getBounds();
+            var original = rotate(box, -object.getAngle());
+            double distX = abs(stream(box.xpoints).min().orElseThrow() - stream(original.xpoints).min().orElseThrow());
+            double distY = abs(stream(box.ypoints).min().orElseThrow() - stream(original.ypoints).min().orElseThrow());
+            if (!bounds.contains(bBounds) && collisionCooledDown(object)) {
+                var walls = new ArrayList<Wall>();
+                int leftX = stream(box.xpoints).min().orElseThrow(),
+                        upY = stream(box.ypoints).min().orElseThrow(),
+                        rightX = stream(box.xpoints).max().orElseThrow(),
+                        downY = stream(box.ypoints).max().orElseThrow();
+                if (upY <= 0) {
+                    object.setY(distY);
 //                    walls.add(UP);
-//                }
-//
-//                if (leftX <= 0) {
-//                    object.setX(distX);
-//                    walls.add(LEFT);
-//                }
-//
-//                if (downY >= bounds.height) {
-//                    object.setY(bounds.y + bounds.height - downY + upY - distY);
-//                    walls.add(DOWN);
-//                    applier.getGravityVelocity().setY(0);
-//                }
-//
-//                if (rightX >= bounds.width) {
-//                    object.setX(bounds.x + bounds.width - rightX + leftX - distX * 2);
-//                    walls.add(RIGHT);
-//                }
-//
-//                walls.forEach(wall -> applier.gravityVelocity.set(
-//                        applier.gravityVelocity.sub(
-//                                wall.normal().mul(2 * applier.gravityVelocity.dot(wall.normal()))
-//                        )
-//                ));
-//
-//                object.handleWallCollision(walls.toArray(new Wall[0]));
-//            }
-//        });
-//    }
-private void handleWallCollisions() {
-    var bounds = gamePanel.getBounds();
-    appliers.forEach(applier -> {
-        var object = applier.getObject();
-        var box = object.getCollisionPoly();
-        var rotatedBox = rotate(box, -object.getAngle());
-
-        double minX = Double.MAX_VALUE, minY = Double.MAX_VALUE;
-        double maxX = Double.MIN_VALUE, maxY = Double.MIN_VALUE;
-
-        for (int i = 0; i < rotatedBox.xpoints.length; i++) {
-            minX = Math.min(minX, rotatedBox.xpoints[i]);
-            maxX = Math.max(maxX, rotatedBox.xpoints[i]);
-            minY = Math.min(minY, rotatedBox.ypoints[i]);
-            maxY = Math.max(maxY, rotatedBox.ypoints[i]);
-        }
-
-        double distX = maxX - minX;
-        double distY = maxY - minY;
-
-        if (!bounds.contains(box.getBounds()) && collisionCooledDown(object)) {
-            var walls = new ArrayList<Wall>();
-
-            if (minY < 0) {
-                object.setY(distY);
-                walls.add(UP);
-            }
-            if (minX < 0) {
-                object.setX(distX);
-                walls.add(LEFT);
-            }
-            if (maxY > bounds.height) {
-                object.setY(bounds.height - distY);
-                walls.add(DOWN);
-                applier.getGravityVelocity().setY(0);
-            }
-            if (maxX > bounds.width) {
-                object.setX(bounds.width - distX);
-                walls.add(RIGHT);
-            }
-
-            if (!walls.isEmpty()) {
-                Vec2 cumulativeReflection = Vec2.zero();
-
-                for (Wall wall : walls) {
-                    Vec2 wallNormal = wall.normal();
-                    cumulativeReflection = cumulativeReflection.add(
-                            wallNormal.mul(-2 * applier.gravityVelocity.dot(wallNormal))
-                    );
                 }
 
-                applier.gravityVelocity.set(applier.gravityVelocity.add(cumulativeReflection));
+                if (leftX <= 0) {
+                    object.setX(distX);
+                    walls.add(LEFT);
+                }
+
+                if (downY >= bounds.height) {
+                    object.setY(bounds.y + bounds.height - downY + upY - distY);
+                    walls.add(DOWN);
+                    applier.getGravityVelocity().setY(0);
+                }
+
+                if (rightX >= bounds.width) {
+                    object.setX(bounds.x + bounds.width - rightX + leftX - distX * 2);
+                    walls.add(RIGHT);
+                }
+
+                walls.forEach(wall -> applier.gravityVelocity.set(
+                        applier.gravityVelocity.sub(
+                                wall.normal().mul(2 * applier.gravityVelocity.dot(wall.normal()))
+                        )
+                ));
+
                 object.handleWallCollision(walls.toArray(new Wall[0]));
             }
-        }
-    });
-}
+        });
+    }
 
 
     private void handleObjectCollisions() {
