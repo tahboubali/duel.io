@@ -1,9 +1,7 @@
 package org.example;
 
-import java.awt.geom.Line2D;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,9 +30,9 @@ public class PhysicsHandler {
             applier.apply(dt);
             applier.prevVelocity.set(applier.gravityVelocity);
         });
-        applyGravity(dt);
         handleWallCollisions();
         handleObjectCollisions();
+        applyGravity(dt);
     }
 
     private void applyGravity(double dt) {
@@ -71,9 +69,9 @@ public class PhysicsHandler {
                 }
 
                 if (downY >= bounds.height) {
+                    applier.getGravityVelocity().setY(0);
                     object.setY(bounds.y + bounds.height - downY + upY - distY);
                     walls.add(DOWN);
-                    applier.getGravityVelocity().setY(0);
                 }
 
                 if (rightX >= bounds.width) {
@@ -106,12 +104,13 @@ public class PhysicsHandler {
                     skip = skip || (second instanceof Player player && first instanceof Projectile projectile && projectile.getPlayer() == player);
 
                     if (!skip) {
-                        restrict(first, second);
                         first.handleObjectCollision(second);
                         second.handleObjectCollision(first);
                         long now = nanoTime();
                         first.setLastCollision(now);
                         first.setLastCollision(now);
+                        if (!((first instanceof Projectile && second instanceof Block) || (first instanceof Block && second instanceof Projectile)))
+                            restrict(first, second);
                     }
                 }
             }
@@ -138,6 +137,11 @@ public class PhysicsHandler {
             second.setX(second.getPosition().getX() - separation / 2);
         } else {
             double separation = overlapY * (firstBounds.getCenterY() > secondBounds.getCenterY() ? 1 : -1);
+            if (first.getY() < second.getY()) {
+                first.getGravityApplier().getGravityVelocity().set(zero());
+            } else {
+                second.getGravityApplier().getGravityVelocity().set(zero());
+            }
             first.setY(first.getPosition().getY() + separation / 2);
             second.setY(second.getPosition().getY() - separation / 2);
         }

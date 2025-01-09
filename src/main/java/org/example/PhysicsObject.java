@@ -45,10 +45,10 @@ public interface PhysicsObject extends GameObj {
             var prev = getGravityApplier().getPrevVelocity();
             switch (wall) {
                 case UP, DOWN -> {
-                    velocity.set(velocity.mul(Vec2.of(damping, -(damping - .08))));
+                    velocity.set(velocity.mul(Vec2.of(damping, -(damping - .1))));
                     gravityV.set(prev.mul(Vec2.of(damping, -(damping - .05))));
                 }
-                case LEFT, RIGHT -> velocity.set(velocity.mul(Vec2.of(-(damping - .08), damping)));
+                case LEFT, RIGHT -> velocity.set(velocity.mul(Vec2.of(-(damping - .1), damping)));
             }
         });
     }

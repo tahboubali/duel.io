@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Player implements PhysicsObject {
+    private static double MAX_HEALTH = 8;
     public static final int WIDTH = 30;
     public static final int HEIGHT = 66;
     private static final int SHOT_COOLDOWN_MILLIS = 320,
@@ -29,6 +30,7 @@ public class Player implements PhysicsObject {
     private final String name;
     private PhysicsHandler.GravityApplier gravityApplier;
     private long lastCollision;
+    private double health;
 
     public Player(GamePanel gamePanel, String name) {
         this.gamePanel = gamePanel;
@@ -98,18 +100,11 @@ public class Player implements PhysicsObject {
         g2d.setColor(Color.BLUE);
         var point = position.asPoint();
         g2d.fillRect(point.x, point.y, WIDTH, HEIGHT);
-        var fontMetrics = g2d.getFontMetrics();
-        int usernameWidth = fontMetrics.stringWidth(name);
-        int offset = fontMetrics.getHeight() + 20;
-        int nameX = point.x - usernameWidth / 2 + WIDTH / 2;
-        int nameY = (point.y - offset) - fontMetrics.getHeight() / 2 + HEIGHT / 2;
-        g2d.drawString(jumping + "", 40, 40);
-        g2d.setColor(Color.BLACK);
-        g2d.setStroke(new BasicStroke(5f));
-        g2d.drawString(name, nameX, nameY);
         g2d.setColor(Color.BLACK);
         g2d.setStroke(new BasicStroke(2.3f));
         g2d.drawRect(point.x, point.y, WIDTH, HEIGHT);
+        drawUsername(g2d);
+        drawHealthBar(g2d);
         synchronized (blocks) {
             shooter.draw(g2d);
             blocks.forEach(block -> block.draw(g2d));
@@ -162,6 +157,9 @@ public class Player implements PhysicsObject {
                 getGravityApplier().getGravityVelocity().setY(0);
             }
         }
+        if (obj instanceof Projectile projectile) {
+            health -= projectile.getVelocity().magnitude();
+        }
     }
 
     @Override
@@ -213,5 +211,26 @@ public class Player implements PhysicsObject {
     @Override
     public long lastCollision() {
         return lastCollision;
+    }
+
+    private void drawHealthBar(Graphics2D g2d) {
+        g2d.setStroke(new BasicStroke(1.3f));
+        int healthBarWidth = WIDTH + 5;
+        int healthBarHeight = 10;
+        var asPoint = position.asPoint();
+        int healthBarY = asPoint.y - 22 - healthBarHeight, healthBarX = (asPoint.x + WIDTH / 2) - healthBarWidth / 2;
+        g2d.drawRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
+    }
+
+    private void drawUsername(Graphics2D g2d) {
+        var fontMetrics = g2d.getFontMetrics();
+        int usernameWidth = fontMetrics.stringWidth(name);
+        int offset = fontMetrics.getHeight() + 15;
+        var asPoint = position.asPoint();
+        int nameX = asPoint.x - usernameWidth / 2 + WIDTH / 2;
+        int nameY = (asPoint.y - offset) - fontMetrics.getHeight() / 2 + HEIGHT / 2;
+        g2d.setColor(Color.BLACK);
+        g2d.setStroke(new BasicStroke(5f));
+        g2d.drawString(name, nameX, nameY);
     }
 }

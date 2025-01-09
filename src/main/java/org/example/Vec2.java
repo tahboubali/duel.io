@@ -163,6 +163,10 @@ public class Vec2 {
         return new Vec2(Math.abs(vec2.x), Math.abs(vec2.y));
     }
 
+    public double magnitude() {
+        return hypot(x, y);
+    }
+
     @Override
     public final boolean equals(Object o) {
         if (this == o) return true;

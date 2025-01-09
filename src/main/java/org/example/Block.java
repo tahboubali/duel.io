@@ -3,22 +3,24 @@ package org.example;
 import java.awt.*;
 import java.time.Duration;
 
-import static java.lang.Math.round;
+import static java.lang.Math.*;
 import static java.lang.System.currentTimeMillis;
 import static org.example.PolyUtils.from;
 import static org.example.PhysicsHandler.GravityApplier;
 import static org.example.PolyUtils.getCorners;
 
 public class Block implements PhysicsObject {
+    private final static int MAX_HEALTH = 10;
     private Color color;
     private final Vec2 position;
     public static final int WIDTH = (int) round(40 * 1.76), HEIGHT = (int) round(40 * 1.76);
-    private static final Duration DESPAWN_TIME = Duration.ofSeconds(60);
+    private static final long DESPAWN_TIME = Duration.ofSeconds(40).toMillis();
     private final long createdMillis;
     private GravityApplier gravityApplier;
     private long lastCollision;
     private final Vec2 velocity;
     private final Player player;
+    private double health;
 
     public Block(double x, double y, Color color, Player player) {
         this.color = color;
@@ -26,16 +28,23 @@ public class Block implements PhysicsObject {
         createdMillis = currentTimeMillis();
         velocity = Vec2.zero();
         this.player = player;
+        health = MAX_HEALTH;
     }
 
     @Override
     public void update(double dt) {
+        double healthDec = dt / DESPAWN_TIME * MAX_HEALTH;
+        health -= healthDec;
         position.set(position.add(velocity));
     }
 
     @Override
     public void draw(Graphics2D g2d) {
         var point = position.asPoint();
+        double r = max(0, color.getRed() - (health / MAX_HEALTH * 255));
+        double g = max(0, color.getGreen() - (health / MAX_HEALTH * 255));
+        double b = max(0, color.getBlue() - (health / MAX_HEALTH * 255));
+        color = new Color((int) round(color.getRed() - r), (int) round(color.getGreen() - g), (int) round(color.getBlue() - b));
         g2d.setColor(color);
         g2d.fillRect(point.x, point.y, WIDTH, HEIGHT);
         var corners = getCorners(getCollisionPoly());
@@ -80,7 +89,7 @@ public class Block implements PhysicsObject {
     }
 
     public boolean shouldDespawn() {
-        return currentTimeMillis() - createdMillis >= DESPAWN_TIME.toMillis();
+        return currentTimeMillis() - createdMillis >= DESPAWN_TIME || health <= 0;
     }
 
     @Override
@@ -90,11 +99,9 @@ public class Block implements PhysicsObject {
 
     @Override
     public void handleObjectCollision(PhysicsObject obj) {
-        if (obj instanceof Projectile) {
-            double factor = .9;
-            color = new Color((int) round(color.getRed() * factor),
-                    (int) round(color.getGreen() * factor),
-                    (int) round(color.getBlue() * factor));
+        if (obj instanceof Projectile projectile) {
+            double damage = projectile.getVelocity().magnitude();
+            health -= damage;
             return;
         }
         if (obj instanceof Player) {
