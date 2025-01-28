@@ -46,7 +46,8 @@ public interface PhysicsObject extends GameObj {
             switch (wall) {
                 case UP, DOWN -> {
                     velocity.set(velocity.mul(Vec2.of(damping, -(damping - .1))));
-                    gravityV.set(prev.mul(Vec2.of(damping, -(damping - .05))));
+//                    if (wall == Wall.DOWN)
+                        gravityV.set(prev.mul(Vec2.of(damping, -(damping - .05))));
                 }
                 case LEFT, RIGHT -> velocity.set(velocity.mul(Vec2.of(-(damping - .1), damping)));
             }

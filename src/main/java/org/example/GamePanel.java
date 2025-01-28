@@ -2,9 +2,8 @@ package org.example;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
+import java.util.List;
 
 import static java.lang.Thread.sleep;
 import static java.lang.Thread.startVirtualThread;
@@ -12,10 +11,11 @@ import static java.lang.Thread.startVirtualThread;
 public class GamePanel extends JPanel implements Runnable {
     public static final Dimension SIZE = Toolkit.getDefaultToolkit().getScreenSize();
     private static final int TARGET_FPS = 250;
-    private final List<Player> players;
+    private Player player;
     private final PhysicsHandler physicsHandler;
     private final ConnectionHandler connectionHandler;
     private final TitleScreenPanel titleScreen;
+    private final DuelManager duelManager;
     private boolean running;
 
     public GamePanel() {
@@ -24,9 +24,9 @@ public class GamePanel extends JPanel implements Runnable {
         addKeyListener(KeyHandler.getInstance());
         addMouseListener(MouseHandler.getInstance());
         setFocusable(true);
-        this.players = new ArrayList<>();
-        this.connectionHandler = new ConnectionHandler(this);
+        this.connectionHandler = new ConnectionHandler();
         startVirtualThread(connectionHandler);
+        this.duelManager = new DuelManager(connectionHandler);
         titleScreen = new TitleScreenPanel();
         add(titleScreen, BorderLayout.CENTER);
         this.physicsHandler = new PhysicsHandler(this);
@@ -36,7 +36,7 @@ public class GamePanel extends JPanel implements Runnable {
         var input = titleScreen.getInput();
         var username = input.get("username");
         var player = new Player(this, username);
-        players.add(player);
+        this.player = player;
         addPhysicsObject(player);
         connectionHandler.sendMessage(Map.of(
                 "request_type", "new-player",
@@ -81,16 +81,21 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     private void update(double dt) {
-        players.forEach(player -> player.update(dt));
+        player.update(dt);
         physicsHandler.update(dt);
     }
 
     protected void paintComponent(Graphics g) {
         var g2d = (Graphics2D) g;
-        players.forEach(player -> player.draw(g2d));
+        if (player != null)
+            player.draw(g2d);
     }
 
     public void addPhysicsObject(PhysicsObject object) {
         physicsHandler.trackObject(object);
+    }
+
+    public List<PhysicsObject> getPhysicsObjects() {
+        return physicsHandler.getObjects();
     }
 }

@@ -55,6 +55,9 @@ public class Projectile implements PhysicsObject {
         g2d.setColor(Color.GREEN);
         g2d.fillOval((int) centerX - 5, (int) centerY - 5, 10, 10);
         g2d.setTransform(transform);
+        g2d.setColor(Color.RED.brighter());
+        g2d.setStroke(new BasicStroke(2));
+        g2d.drawPolygon(getCollisionPoly());
     }
 
     private boolean outOfBounds() {

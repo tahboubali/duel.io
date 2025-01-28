@@ -7,7 +7,6 @@ import static java.lang.Math.*;
 import static java.lang.System.currentTimeMillis;
 import static org.example.PolyUtils.from;
 import static org.example.PhysicsHandler.GravityApplier;
-import static org.example.PolyUtils.getCorners;
 
 public class Block implements PhysicsObject {
     private final static int MAX_HEALTH = 10;
@@ -21,14 +20,16 @@ public class Block implements PhysicsObject {
     private final Vec2 velocity;
     private final Player player;
     private double health;
+    private final GamePanel gamePanel;
 
-    public Block(double x, double y, Color color, Player player) {
+    public Block(double x, double y, Color color, Player player, GamePanel gamePanel) {
         this.color = color;
         position = Vec2.of(x, y);
         createdMillis = currentTimeMillis();
         velocity = Vec2.zero();
         this.player = player;
         health = MAX_HEALTH;
+        this.gamePanel = gamePanel;
     }
 
     @Override
@@ -44,15 +45,13 @@ public class Block implements PhysicsObject {
         double r = max(0, color.getRed() - (health / MAX_HEALTH * 255));
         double g = max(0, color.getGreen() - (health / MAX_HEALTH * 255));
         double b = max(0, color.getBlue() - (health / MAX_HEALTH * 255));
-        color = new Color((int) round(color.getRed() - r), (int) round(color.getGreen() - g), (int) round(color.getBlue() - b));
+        color = new Color(max(0, (int) round(color.getRed() - r)), max(0, (int) round(color.getGreen() - g)), max(0, (int) round(color.getBlue() - b)));
         g2d.setColor(color);
         g2d.fillRect(point.x, point.y, WIDTH, HEIGHT);
-        var corners = getCorners(getCollisionPoly());
-        int rad = 3;
-        g2d.setColor(Color.RED);
-        for (var corner : corners) {
-            g2d.fillOval(corner.x - rad, corner.y - rad, rad * 2, rad * 2);
-        }
+        g2d.setColor(Color.WHITE);
+        g2d.setStroke(new BasicStroke(2));
+        g2d.drawRect(point.x, point.y, WIDTH, HEIGHT);
+        g2d.setColor(Color.BLACK);
     }
 
     public double getX() {
@@ -65,17 +64,25 @@ public class Block implements PhysicsObject {
 
     @Override
     public void setX(double x) {
-        this.position.setX(x);
+        setPosition(Vec2.of(x, getY()));
     }
 
     @Override
     public void setY(double y) {
-        this.position.setY(y);
+        setPosition(Vec2.of(getX(), y));
     }
 
     @Override
     public void setPosition(Vec2 vec2) {
-        position.set(vec2);
+        for (var object : gamePanel.getPhysicsObjects()) {
+            if (object == this) continue;
+            if (object.getCollisionPoly().intersects(this.getCollisionPoly().getBounds()))
+                PhysicsHandler.restrict(this, object);
+        }
+        position.set(Vec2.of(
+                max(0, min(vec2.getX(), gamePanel.getWidth() - WIDTH + .5)),
+                max(0, min(vec2.getY(), gamePanel.getHeight() - HEIGHT + .5))
+        ));
     }
 
     @Override
@@ -112,7 +119,7 @@ public class Block implements PhysicsObject {
         double OBJECT_DAMPING = .8;
         var thisVf = (velocity.mul((this.getMass() - OBJECT_DAMPING * obj.getMass())).add(objVelocity.mul((1 + OBJECT_DAMPING) * obj.getMass()))).div((this.getMass() + obj.getMass()));
         this.getGravityApplier().getGravityVelocity().set(thisVf);
-        if (this.position.getY() < obj.getPosition().getY())
+        if (this.getCollisionPoly().getBounds().getCenterY() < obj.getCollisionPoly().getBounds().getCenterY())
             bounce(.2, Wall.DOWN);
     }
 

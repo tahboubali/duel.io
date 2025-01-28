@@ -2,7 +2,7 @@ package org.example;
 
 import java.awt.*;
 
-import static java.lang.Math.round;
+import static java.lang.Math.*;
 import static org.example.KeyHandler.*;
 import static org.example.MouseHandler.isLeftClicked;
 import static org.example.MouseHandler.isRightClicked;
@@ -21,7 +21,7 @@ public class Player implements PhysicsObject {
     private final static double SPEED = .5;
     private final static double JUMP_VELOCITY = 1.4;
     private final Shooter shooter;
-    private Vec2 position;
+    private final Vec2 position;
     private long lastShot, lastBuilt;
     private final List<Block> blocks;
     private boolean jumping;
@@ -66,7 +66,7 @@ public class Player implements PhysicsObject {
         if (isRightClicked()) {
             var direction = shooter.getDirection().mul(100);
             var block = new Block(position.getX() + WIDTH / 2d + direction.getX() - Block.WIDTH / 2d,
-                    position.getY() + HEIGHT / 2d + direction.getY() - Block.HEIGHT / 2d, Color.GREEN, this);
+                    position.getY() + HEIGHT / 2d + direction.getY() - Block.HEIGHT / 2d, Color.GREEN, this, gamePanel);
             block.getVelocity().set(direction.mul(.002));
             var intersects = false;
             for (var other : blocks.stream().map(Block::getCollisionPoly).toList()) {
@@ -121,17 +121,26 @@ public class Player implements PhysicsObject {
 
     @Override
     public void setX(double x) {
-        position.setX(x);
+        setPosition(Vec2.of(x, getY()));
     }
 
     @Override
     public void setY(double y) {
-        position.setY(y);
+        setPosition(Vec2.of(getX(), y));
     }
 
     @Override
     public void setPosition(Vec2 vec2) {
-        position = vec2;
+        for (var object : gamePanel.getPhysicsObjects()) {
+            if (object == this) continue;
+            if (this.getCollisionPoly().getBounds().intersects(object.getCollisionPoly().getBounds()))
+                PhysicsHandler.restrict(this, object);
+        }
+        position.set(Vec2.of(
+                max(0, min(vec2.getX(), gamePanel.getWidth() - WIDTH + .5)),
+                max(0, min(vec2.getY(), gamePanel.getHeight() - HEIGHT + .5))
+        ));
+
     }
 
     @Override

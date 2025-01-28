@@ -17,14 +17,12 @@ import java.util.concurrent.ExecutionException;
 import static java.net.http.HttpClient.newHttpClient;
 
 public class ConnectionHandler implements Runnable {
-    private final GamePanel gamePanel;
     private final Queue<String> sendQueue;
     private final Queue<String> readQueue;
     private final Gson GSON = new Gson().newBuilder().excludeFieldsWithoutExposeAnnotation().create();
     private String connectionStatusMessage = "Connecting to server...";
 
-    public ConnectionHandler(GamePanel gamePanel) {
-        this.gamePanel = gamePanel;
+    public ConnectionHandler() {
         this.sendQueue = new ConcurrentLinkedQueue<>();
         this.readQueue = new ConcurrentLinkedQueue<>();
     }
@@ -73,7 +71,7 @@ public class ConnectionHandler implements Runnable {
     }
 
     public Map<String, Object> readMessage() {
-        return GSON.fromJson(readQueue.poll(), Map.class);
+        return GSON.<Map<String, Object>>fromJson(readQueue.poll(), Map.class);
     }
 
     public String getConnectionStatus() {

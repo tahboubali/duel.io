@@ -30,9 +30,9 @@ public class PhysicsHandler {
             applier.apply(dt);
             applier.prevVelocity.set(applier.gravityVelocity);
         });
+        applyGravity(dt);
         handleWallCollisions();
         handleObjectCollisions();
-        applyGravity(dt);
     }
 
     private void applyGravity(double dt) {
@@ -108,7 +108,7 @@ public class PhysicsHandler {
                         second.handleObjectCollision(first);
                         long now = nanoTime();
                         first.setLastCollision(now);
-                        first.setLastCollision(now);
+                        second.setLastCollision(now);
                         if (!((first instanceof Projectile && second instanceof Block) || (first instanceof Block && second instanceof Projectile)))
                             restrict(first, second);
                     }
@@ -117,7 +117,7 @@ public class PhysicsHandler {
         }
     }
 
-    private static void restrict(PhysicsObject first, PhysicsObject second) {
+    public static void restrict(PhysicsObject first, PhysicsObject second) {
         var firstBounds = first.getCollisionPoly().getBounds();
         var secondBounds = second.getCollisionPoly().getBounds();
 
@@ -133,18 +133,22 @@ public class PhysicsHandler {
 
         if (overlapX < overlapY) {
             double separation = overlapX * (firstBounds.getCenterX() > secondBounds.getCenterX() ? 1 : -1);
-            first.setX(first.getPosition().getX() + separation / 2);
-            second.setX(second.getPosition().getX() - separation / 2);
+            first.getPosition().setX(first.getPosition().getX() + separation / 2);
+            second.getPosition().setX(second.getPosition().getX() - separation / 2);
         } else {
             double separation = overlapY * (firstBounds.getCenterY() > secondBounds.getCenterY() ? 1 : -1);
-            if (first.getY() < second.getY()) {
+            if (firstBounds.getCenterY() < secondBounds.getCenterY()) {
                 first.getGravityApplier().getGravityVelocity().set(zero());
             } else {
                 second.getGravityApplier().getGravityVelocity().set(zero());
             }
-            first.setY(first.getPosition().getY() + separation / 2);
-            second.setY(second.getPosition().getY() - separation / 2);
+            first.getPosition().setY(first.getPosition().getY() + separation / 2);
+            second.getPosition().setY(second.getPosition().getY() - separation / 2);
         }
+    }
+
+    public List<PhysicsObject> getObjects() {
+        return appliers.stream().map(GravityApplier::getObject).toList();
     }
 
     private static boolean collisionCooledDown(PhysicsObject object) {
@@ -155,6 +159,14 @@ public class PhysicsHandler {
         var applier = new GravityApplier(object);
         appliers.add(applier);
         object.setGravityApplier(applier);
+    }
+
+    public void restrict(PhysicsObject obj) {
+        for (var other : appliers) {
+            var otherObj = other.getObject();
+            if (otherObj == obj) continue;
+            restrict(obj, otherObj);
+        }
     }
 
     public static class GravityApplier {
