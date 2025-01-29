@@ -10,6 +10,7 @@ import static org.example.ConnectionHandler.*;
 import static org.example.PolyUtils.*;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class Player implements PhysicsObject {
@@ -17,7 +18,7 @@ public class Player implements PhysicsObject {
     public static final int WIDTH = 30;
     public static final int HEIGHT = 66;
     private static final int SHOT_COOLDOWN_MILLIS = 320,
-            BUILD_COOLDOWN_MILLIS = 350; // 350
+            BUILD_COOLDOWN_MILLIS = 350;
     private final static double SPEED = .5;
     private final static double JUMP_VELOCITY = 1.4;
     private final Shooter shooter;
@@ -36,7 +37,7 @@ public class Player implements PhysicsObject {
         this.gamePanel = gamePanel;
         this.position = Vec2.of(gamePanel.getPreferredSize().getWidth() / 2d - WIDTH / 2d, gamePanel.getPreferredSize().getHeight() / 2d - HEIGHT / 2d);
         this.shooter = new Shooter(this, gamePanel);
-        this.blocks = new ArrayList<>();
+        this.blocks = Collections.synchronizedList(new ArrayList<>());
         this.velocity = Vec2.zero();
         this.name = name;
     }
@@ -64,7 +65,8 @@ public class Player implements PhysicsObject {
             }
         }
         if (isRightClicked()) {
-            var direction = shooter.getDirection().mul(100);
+            int MAX_VELOCITY = 120;
+            var direction = shooter.getDirection().mul(MAX_VELOCITY);
             var block = new Block(position.getX() + WIDTH / 2d + direction.getX() - Block.WIDTH / 2d,
                     position.getY() + HEIGHT / 2d + direction.getY() - Block.HEIGHT / 2d, Color.GREEN, this, gamePanel);
             block.getVelocity().set(direction.mul(.002));
@@ -131,16 +133,15 @@ public class Player implements PhysicsObject {
 
     @Override
     public void setPosition(Vec2 vec2) {
-        for (var object : gamePanel.getPhysicsObjects()) {
-            if (object == this) continue;
-            if (this.getCollisionPoly().getBounds().intersects(object.getCollisionPoly().getBounds()))
-                PhysicsHandler.restrict(this, object);
-        }
+//        for (var object : gamePanel.getPhysicsObjects()) {
+//            if (object == this) continue;
+//            if (this.getCollisionPoly().getBounds().intersects(object.getCollisionPoly().getBounds()))
+//                PhysicsHandler.restrict(this, object);
+//        }
         position.set(Vec2.of(
                 max(0, min(vec2.getX(), gamePanel.getWidth() - WIDTH + .5)),
                 max(0, min(vec2.getY(), gamePanel.getHeight() - HEIGHT + .5))
         ));
-
     }
 
     @Override

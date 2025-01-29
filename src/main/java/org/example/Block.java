@@ -74,11 +74,11 @@ public class Block implements PhysicsObject {
 
     @Override
     public void setPosition(Vec2 vec2) {
-        for (var object : gamePanel.getPhysicsObjects()) {
-            if (object == this) continue;
-            if (object.getCollisionPoly().intersects(this.getCollisionPoly().getBounds()))
-                PhysicsHandler.restrict(this, object);
-        }
+//        for (var object : gamePanel.getPhysicsObjects()) {
+//            if (object == this) continue;
+//            if (object.getCollisionPoly().intersects(this.getCollisionPoly().getBounds()))
+//                PhysicsHandler.restrict(this, object);
+//        }
         position.set(Vec2.of(
                 max(0, min(vec2.getX(), gamePanel.getWidth() - WIDTH + .5)),
                 max(0, min(vec2.getY(), gamePanel.getHeight() - HEIGHT + .5))

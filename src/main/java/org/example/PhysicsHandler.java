@@ -1,6 +1,5 @@
 package org.example;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -16,7 +15,6 @@ public class PhysicsHandler {
     public static final double GRAVITATIONAL_ACCELERATION = 0.005;
     private final List<GravityApplier> appliers;
     private final GamePanel gamePanel;
-    private final static long COLLISION_COOLDOWN_NANOS = Duration.ofMillis(15).toNanos();
 
     public PhysicsHandler(GamePanel gamePanel, PhysicsObject... objects) {
         this.gamePanel = gamePanel;
@@ -51,16 +49,12 @@ public class PhysicsHandler {
             var original = rotate(box, -object.getAngle());
             double distX = abs(stream(box.xpoints).min().orElseThrow() - stream(original.xpoints).min().orElseThrow());
             double distY = abs(stream(box.ypoints).min().orElseThrow() - stream(original.ypoints).min().orElseThrow());
-            if (!bounds.contains(bBounds) && collisionCooledDown(object)) {
+            if (!bounds.contains(bBounds)) {
                 var walls = new ArrayList<Wall>();
-                int leftX = stream(box.xpoints).min().orElseThrow(),
-                        upY = stream(box.ypoints).min().orElseThrow(),
-                        rightX = stream(box.xpoints).max().orElseThrow(),
-                        downY = stream(box.ypoints).max().orElseThrow();
+                int leftX = stream(box.xpoints).min().orElseThrow(), upY = stream(box.ypoints).min().orElseThrow(), rightX = stream(box.xpoints).max().orElseThrow(), downY = stream(box.ypoints).max().orElseThrow();
                 if (upY <= 0) {
                     object.setY(distY);
-                    if (!(object instanceof Player))
-                        walls.add(UP);
+                    if (!(object instanceof Player)) walls.add(UP);
                 }
 
                 if (leftX <= 0) {
@@ -96,9 +90,7 @@ public class PhysicsHandler {
             var first = appliers.get(i).getObject();
             for (int j = i + 1; j < appliers.size(); j++) {
                 var second = appliers.get(j).getObject();
-                if ((collisionCooledDown(first) || collisionCooledDown(second))
-                        && first.hasCollision() && second.hasCollision()
-                        && intersects(first.getCollisionPoly(), second.getCollisionPoly())) {
+                if (first.hasCollision() && second.hasCollision() && intersects(first.getCollisionPoly(), second.getCollisionPoly())) {
                     boolean skip = second instanceof Projectile && first instanceof Projectile;
                     skip = skip || (first instanceof Player player && second instanceof Projectile projectile && projectile.getPlayer() == player);
                     skip = skip || (second instanceof Player player && first instanceof Projectile projectile && projectile.getPlayer() == player);
@@ -109,8 +101,7 @@ public class PhysicsHandler {
                         long now = nanoTime();
                         first.setLastCollision(now);
                         second.setLastCollision(now);
-                        if (!((first instanceof Projectile && second instanceof Block) || (first instanceof Block && second instanceof Projectile)))
-                            restrict(first, second);
+                        restrict(first, second);
                     }
                 }
             }
@@ -118,18 +109,13 @@ public class PhysicsHandler {
     }
 
     public static void restrict(PhysicsObject first, PhysicsObject second) {
+        if ((first instanceof Player && second instanceof Projectile) || (first instanceof Projectile && second instanceof Player))
+            return;
         var firstBounds = first.getCollisionPoly().getBounds();
         var secondBounds = second.getCollisionPoly().getBounds();
 
-        double overlapX = Math.min(
-                firstBounds.getMaxX() - secondBounds.getMinX(),
-                secondBounds.getMaxX() - firstBounds.getMinX()
-        );
-
-        double overlapY = Math.min(
-                firstBounds.getMaxY() - secondBounds.getMinY(),
-                secondBounds.getMaxY() - firstBounds.getMinY()
-        );
+        double overlapX = Math.min(firstBounds.getMaxX() - secondBounds.getMinX(), secondBounds.getMaxX() - firstBounds.getMinX());
+        double overlapY = Math.min(firstBounds.getMaxY() - secondBounds.getMinY(), secondBounds.getMaxY() - firstBounds.getMinY());
 
         if (overlapX < overlapY) {
             double separation = overlapX * (firstBounds.getCenterX() > secondBounds.getCenterX() ? 1 : -1);
@@ -151,22 +137,10 @@ public class PhysicsHandler {
         return appliers.stream().map(GravityApplier::getObject).toList();
     }
 
-    private static boolean collisionCooledDown(PhysicsObject object) {
-        return nanoTime() - object.lastCollision() > COLLISION_COOLDOWN_NANOS;
-    }
-
     public void trackObject(PhysicsObject object) {
         var applier = new GravityApplier(object);
         appliers.add(applier);
         object.setGravityApplier(applier);
-    }
-
-    public void restrict(PhysicsObject obj) {
-        for (var other : appliers) {
-            var otherObj = other.getObject();
-            if (otherObj == obj) continue;
-            restrict(obj, otherObj);
-        }
     }
 
     public static class GravityApplier {
@@ -180,8 +154,7 @@ public class PhysicsHandler {
 
         public void apply(double dt) {
             var position = object.getPosition();
-            var velocity = object.getVelocity().mul(dt)
-                    .add(Vec2.of(0, this.gravityVelocity.getY() * dt));
+            var velocity = object.getVelocity().mul(dt).add(Vec2.of(0, this.gravityVelocity.getY() * dt));
             object.setPosition((velocity.add(position)));
             object.setAngle(velocity.asAngle());
         }

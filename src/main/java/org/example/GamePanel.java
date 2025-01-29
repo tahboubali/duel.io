@@ -3,7 +3,6 @@ package org.example;
 import javax.swing.*;
 import java.awt.*;
 import java.util.Map;
-import java.util.List;
 
 import static java.lang.Thread.sleep;
 import static java.lang.Thread.startVirtualThread;
@@ -93,9 +92,5 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void addPhysicsObject(PhysicsObject object) {
         physicsHandler.trackObject(object);
-    }
-
-    public List<PhysicsObject> getPhysicsObjects() {
-        return physicsHandler.getObjects();
     }
 }
