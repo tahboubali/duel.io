@@ -25,7 +25,7 @@ public class GamePanel extends JPanel implements Runnable {
         setFocusable(true);
         this.connectionHandler = new ConnectionHandler();
         startVirtualThread(connectionHandler);
-        this.duelManager = new DuelManager(connectionHandler);
+        this.duelManager = new DuelManager(connectionHandler, this);
         titleScreen = new TitleScreenPanel();
         add(titleScreen, BorderLayout.CENTER);
         this.physicsHandler = new PhysicsHandler(this);
@@ -48,7 +48,7 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void run() {
         setPlayer();
-        double drawInterval = 1_000_000_000d / TARGET_FPS;
+        double drawInterval = 1_000_000_000. / (TARGET_FPS);
         double nextDrawTime = System.nanoTime() + drawInterval;
         double last = System.currentTimeMillis();
         if (running)

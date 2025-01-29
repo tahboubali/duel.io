@@ -20,7 +20,7 @@ public class ConnectionHandler implements Runnable {
     private final Queue<String> sendQueue;
     private final Queue<String> readQueue;
     private final Gson GSON = new Gson().newBuilder().excludeFieldsWithoutExposeAnnotation().create();
-    private String connectionStatusMessage = "Connecting to server...";
+    private ConnectionStatus connectionStatusMessage = ConnectionStatus.CONNECTING;
 
     public ConnectionHandler() {
         this.sendQueue = new ConcurrentLinkedQueue<>();
@@ -37,7 +37,7 @@ public class ConnectionHandler implements Runnable {
         boolean connected = false;
         while (!connected) {
             try (var client = newHttpClient()) {
-                connectionStatusMessage = "Connecting to server...";
+                connectionStatusMessage = ConnectionStatus.CONNECTING;
                 var ws = client.newWebSocketBuilder().buildAsync(new URI("ws://localhost:8080/connect"), new WebSocket.Listener() {
                     @Override
                     public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
@@ -48,7 +48,7 @@ public class ConnectionHandler implements Runnable {
                         });
                     }
                 }).get();
-                connectionStatusMessage = "Successfully connected to server";
+                connectionStatusMessage = ConnectionStatus.SUCCESS;
                 connected = true;
 
                 while (Thread.currentThread().isAlive()) {
@@ -56,7 +56,7 @@ public class ConnectionHandler implements Runnable {
                         ws.sendText(sendQueue.poll(), true);
                 }
             } catch (URISyntaxException | InterruptedException | ExecutionException _) {
-                connectionStatusMessage = "Failed to connect to server";
+                connectionStatusMessage = ConnectionStatus.FAILED;
                 try {
                     Thread.sleep(POLL);
                 } catch (InterruptedException e) {
@@ -74,10 +74,22 @@ public class ConnectionHandler implements Runnable {
         return GSON.<Map<String, Object>>fromJson(readQueue.poll(), Map.class);
     }
 
-    public String getConnectionStatus() {
+    public ConnectionStatus getConnectionStatus() {
         return connectionStatusMessage;
     }
 
     public record PlayerUpdateInfo(int x, int y, List<Projectile> projectiles, List<Block> blocks) {
+    }
+
+    public enum ConnectionStatus {
+        CONNECTING, FAILED, SUCCESS;
+
+        public String getMessage() {
+            return switch (this) {
+                case CONNECTING -> "Connecting to server...";
+                case FAILED -> "Successfully connected to server.";
+                case SUCCESS -> "Failed to connect to server.";
+            };
+        }
     }
 }
