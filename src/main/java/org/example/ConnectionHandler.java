@@ -6,6 +6,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.WebSocket;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -18,13 +19,13 @@ import static java.net.http.HttpClient.newHttpClient;
 
 public class ConnectionHandler implements Runnable {
     private final Queue<String> sendQueue;
-    private final Queue<String> readQueue;
     private final Gson GSON = new Gson().newBuilder().excludeFieldsWithoutExposeAnnotation().create();
     private ConnectionStatus connectionStatusMessage = ConnectionStatus.CONNECTING;
+    private final List<MessageObserver> observers;
 
     public ConnectionHandler() {
         this.sendQueue = new ConcurrentLinkedQueue<>();
-        this.readQueue = new ConcurrentLinkedQueue<>();
+        observers = new ArrayList<>();
     }
 
     @Override
@@ -42,8 +43,7 @@ public class ConnectionHandler implements Runnable {
                     @Override
                     public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
                         return CompletableFuture.supplyAsync(() -> {
-                            readQueue.add(data.toString());
-                            System.out.println("New message received: " + data);
+                            notifyObservers(fromJson(data));
                             return data;
                         });
                     }
@@ -66,12 +66,18 @@ public class ConnectionHandler implements Runnable {
         }
     }
 
-    public void sendMessage(Map<String, Object> message) {
-        sendQueue.add(GSON.toJson(message));
+    private Map<String, Object> fromJson(CharSequence data) {
+        return  GSON.<Map<String, Object>>fromJson(data.toString(), Map.class);
     }
 
-    public Map<String, Object> readMessage() {
-        return GSON.<Map<String, Object>>fromJson(readQueue.poll(), Map.class);
+    private void notifyObservers(Map<String, Object> message) {
+        for (var observer : observers) {
+            observer.handleMessage(message);
+        }
+    }
+
+    public void sendMessage(Map<String, Object> message) {
+        sendQueue.add(GSON.toJson(message));
     }
 
     public ConnectionStatus getConnectionStatus() {
@@ -91,5 +97,13 @@ public class ConnectionHandler implements Runnable {
                 case SUCCESS -> "Failed to connect to server.";
             };
         }
+    }
+
+    public void addObserver(MessageObserver observer) {
+        observers.add(observer);
+    }
+
+    public interface MessageObserver {
+        void handleMessage(Map<String, Object> message);
     }
 }

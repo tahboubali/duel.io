@@ -164,6 +164,7 @@ public class Player implements PhysicsObject {
         if (obj instanceof Block) {
             if (position.getY() + HEIGHT >= obj.getY() && getY() < obj.getY()) {
                 jumping = false;
+                bounce(.4, Wall.DOWN);
                 getGravityApplier().getGravityVelocity().setY(0);
             }
         }

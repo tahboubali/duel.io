@@ -6,15 +6,16 @@ import java.util.Map;
 
 import static java.lang.Thread.sleep;
 import static java.lang.Thread.startVirtualThread;
+import static org.example.ConnectionHandler.MessageObserver;
 
-public class GamePanel extends JPanel implements Runnable {
+public class GamePanel extends JPanel implements Runnable, MessageObserver {
     public static final Dimension SIZE = Toolkit.getDefaultToolkit().getScreenSize();
     private static final int TARGET_FPS = 250;
     private Player player;
     private final PhysicsHandler physicsHandler;
     private final ConnectionHandler connectionHandler;
     private final TitleScreenPanel titleScreen;
-    private final DuelManager duelManager;
+    private DuelManager duelManager;
     private boolean running;
 
     public GamePanel() {
@@ -24,8 +25,8 @@ public class GamePanel extends JPanel implements Runnable {
         addMouseListener(MouseHandler.getInstance());
         setFocusable(true);
         this.connectionHandler = new ConnectionHandler();
+        connectionHandler.addObserver(this);
         startVirtualThread(connectionHandler);
-        this.duelManager = new DuelManager(connectionHandler, this);
         titleScreen = new TitleScreenPanel();
         add(titleScreen, BorderLayout.CENTER);
         this.physicsHandler = new PhysicsHandler(this);
@@ -44,6 +45,7 @@ public class GamePanel extends JPanel implements Runnable {
                 )
         ));
         remove(titleScreen);
+        this.duelManager = new DuelManager(connectionHandler, this);
     }
 
     public void run() {
@@ -82,6 +84,9 @@ public class GamePanel extends JPanel implements Runnable {
     private void update(double dt) {
         player.update(dt);
         physicsHandler.update(dt);
+        if (duelManager.isPressed() && getMousePosition() != null) {
+            duelManager.setLocation(getMousePosition());
+        }
     }
 
     protected void paintComponent(Graphics g) {
@@ -92,5 +97,9 @@ public class GamePanel extends JPanel implements Runnable {
 
     public void addPhysicsObject(PhysicsObject object) {
         physicsHandler.trackObject(object);
+    }
+
+    public void handleMessage(Map<String, Object> message) {
+
     }
 }
