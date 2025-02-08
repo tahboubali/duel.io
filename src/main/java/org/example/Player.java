@@ -48,7 +48,7 @@ public class Player implements PhysicsObject {
         if (isLeft()) {
             velocity.setX(velocity.getX() - SPEED);
         }
-        if (isDown()) {
+        if (isShift()) {
             velocity.setY(velocity.getY() + SPEED);
         }
         if (isRight()) {

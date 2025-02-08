@@ -4,7 +4,6 @@ import java.awt.*;
 
 import static java.util.Arrays.stream;
 
-
 public interface PhysicsObject extends GameObj {
     double getX();
 

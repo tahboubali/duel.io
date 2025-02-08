@@ -6,7 +6,7 @@ import java.awt.event.KeyEvent;
 import static java.awt.event.KeyEvent.*;
 
 public class KeyHandler extends KeyAdapter {
-    private boolean up, down, left, right, space;
+    private boolean up, shift, left, right, space, hide;
     private static final KeyHandler KEY_HANDLER = new KeyHandler();
 
     private KeyHandler() {
@@ -22,6 +22,7 @@ public class KeyHandler extends KeyAdapter {
     public void keyReleased(KeyEvent e) {
         setDirections(e.getKeyCode(), false);
         if (e.getKeyCode() == KeyEvent.VK_SPACE) space = false;
+        if (e.getKeyCode() == KeyEvent.VK_H) hide = !hide;
     }
 
     private void setDirections(int code, boolean active) {
@@ -29,8 +30,8 @@ public class KeyHandler extends KeyAdapter {
             up = active;
         if (code == VK_A || code == VK_LEFT)
             left = active;
-        if (code == VK_S || code == VK_DOWN)
-            down = active;
+        if (code == VK_SHIFT)
+            shift = active;
         if (code == VK_D || code == VK_RIGHT)
             right = active;
     }
@@ -47,8 +48,8 @@ public class KeyHandler extends KeyAdapter {
         return KEY_HANDLER.left;
     }
 
-    public static boolean isDown() {
-        return KEY_HANDLER.down;
+    public static boolean isShift() {
+        return KEY_HANDLER.shift;
     }
 
     public static boolean isRight() {
@@ -57,5 +58,9 @@ public class KeyHandler extends KeyAdapter {
 
     public static boolean isSpace() {
         return KEY_HANDLER.space;
+    }
+
+    public static boolean isHide() {
+        return KEY_HANDLER.hide;
     }
 }

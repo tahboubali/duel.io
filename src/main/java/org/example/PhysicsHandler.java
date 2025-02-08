@@ -1,5 +1,6 @@
 package org.example;
 
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,7 +19,7 @@ public class PhysicsHandler {
 
     public PhysicsHandler(GamePanel gamePanel, PhysicsObject... objects) {
         this.gamePanel = gamePanel;
-        this.appliers = stream(objects).map(GravityApplier::new).collect(Collectors.toCollection(ArrayList::new));
+        this.appliers = stream(objects).map(GravityApplier::new).collect(Collectors.toCollection(ArrayList<GravityApplier>::new));
         appliers.forEach(applier -> applier.getObject().setGravityApplier(applier));
     }
 
@@ -28,9 +29,11 @@ public class PhysicsHandler {
             applier.apply(dt);
             applier.prevVelocity.set(applier.gravityVelocity);
         });
-        applyGravity(dt);
-        handleWallCollisions();
         handleObjectCollisions();
+        handleWallCollisions();
+        applyGravity(dt);
+        handleObjectCollisions();
+        handleWallCollisions();
     }
 
     private void applyGravity(double dt) {
@@ -84,7 +87,6 @@ public class PhysicsHandler {
         });
     }
 
-
     private void handleObjectCollisions() {
         for (int i = 0; i < appliers.size(); i++) {
             var first = appliers.get(i).getObject();
@@ -94,7 +96,6 @@ public class PhysicsHandler {
                     boolean skip = second instanceof Projectile && first instanceof Projectile;
                     skip = skip || (first instanceof Player player && second instanceof Projectile projectile && projectile.getPlayer() == player);
                     skip = skip || (second instanceof Player player && first instanceof Projectile projectile && projectile.getPlayer() == player);
-
                     if (!skip) {
                         first.handleObjectCollision(second);
                         second.handleObjectCollision(first);

@@ -31,7 +31,6 @@ public class TitleScreenPanel extends JPanel {
             }
         });
         add(text);
-
         var submitBtn = new JButton("PLAY!");
         var btnBounds = new Rectangle(label.getX(), text.getY() + 90, (int) bounds.getWidth(), (int) bounds.getWidth());
         btnBounds.grow(20, 20);

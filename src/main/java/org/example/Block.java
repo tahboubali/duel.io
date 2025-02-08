@@ -74,11 +74,6 @@ public class Block implements PhysicsObject {
 
     @Override
     public void setPosition(Vec2 vec2) {
-//        for (var object : gamePanel.getPhysicsObjects()) {
-//            if (object == this) continue;
-//            if (object.getCollisionPoly().intersects(this.getCollisionPoly().getBounds()))
-//                PhysicsHandler.restrict(this, object);
-//        }
         position.set(Vec2.of(
                 max(0, min(vec2.getX(), gamePanel.getWidth() - WIDTH + .5)),
                 max(0, min(vec2.getY(), gamePanel.getHeight() - HEIGHT + .5))
@@ -109,16 +104,7 @@ public class Block implements PhysicsObject {
         if (obj instanceof Projectile projectile) {
             double damage = projectile.getVelocity().magnitude();
             health -= damage;
-            return;
         }
-        if (obj instanceof Player) {
-            return;
-        }
-        var velocity = getGravityApplier().getPrevVelocity();
-        var objVelocity = obj.getGravityApplier().getPrevVelocity();
-        double OBJECT_DAMPING = .8;
-        var thisVf = (velocity.mul((this.getMass() - OBJECT_DAMPING * obj.getMass())).add(objVelocity.mul((1 + OBJECT_DAMPING) * obj.getMass()))).div((this.getMass() + obj.getMass()));
-        this.getGravityApplier().getGravityVelocity().set(thisVf);
         if (this.getCollisionPoly().getBounds().getCenterY() < obj.getCollisionPoly().getBounds().getCenterY())
             bounce(.2, Wall.DOWN);
     }

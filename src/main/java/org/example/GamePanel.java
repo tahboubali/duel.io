@@ -2,6 +2,7 @@ package org.example;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Arrays;
 import java.util.Map;
 
 import static java.lang.Thread.sleep;
@@ -10,13 +11,14 @@ import static org.example.ConnectionHandler.MessageObserver;
 
 public class GamePanel extends JPanel implements Runnable, MessageObserver {
     public static final Dimension SIZE = Toolkit.getDefaultToolkit().getScreenSize();
-    private static final int TARGET_FPS = 250;
+    private static final int TARGET_FPS = 350;
     private Player player;
     private final PhysicsHandler physicsHandler;
     private final ConnectionHandler connectionHandler;
     private final TitleScreenPanel titleScreen;
     private DuelManager duelManager;
     private boolean running;
+    private int currFPS;
 
     public GamePanel() {
         setBackground(Color.DARK_GRAY);
@@ -57,11 +59,18 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
             throw new IllegalStateException("Game is already running.");
 
         running = true;
-
+        long lastFPS = System.currentTimeMillis();
+        int frames = 0;
         while (running) {
+            frames++;
             double now = System.currentTimeMillis();
             update(now - last);
             repaint();
+            if (now - lastFPS >= 500) {
+                currFPS = (int) Math.round(1000d / ((now - lastFPS) / frames));
+                lastFPS = Math.round(now);
+                frames = 0;
+            }
             last = now;
             try {
                 double curr = System.nanoTime();
@@ -87,12 +96,20 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         if (duelManager.isPressed() && getMousePosition() != null) {
             duelManager.setLocation(getMousePosition());
         }
+        duelManager.update();
     }
 
     protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        if (duelManager != null)
+            duelManager.draw();
         var g2d = (Graphics2D) g;
+        g2d.drawString("FPS: " + currFPS, 20, 50);
         if (player != null)
             player.draw(g2d);
+        if (Arrays.stream(getComponents()).toList().contains(titleScreen))
+            titleScreen.repaint();
+        g.dispose();
     }
 
     public void addPhysicsObject(PhysicsObject object) {
