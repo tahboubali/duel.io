@@ -85,7 +85,7 @@ public class Player implements PhysicsObject {
             }
         }
         if (jumping) {
-            if (position.getY() + HEIGHT >= gamePanel.getSize().height) {
+            if (position.getY() + HEIGHT >= gamePanel.getSize().height - 1) {
                 jumping = false;
             }
             velocity.setY(-JUMP_VELOCITY);

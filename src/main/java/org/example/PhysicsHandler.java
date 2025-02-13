@@ -56,31 +56,31 @@ public class PhysicsHandler {
                 var walls = new ArrayList<Wall>();
                 int leftX = stream(box.xpoints).min().orElseThrow(), upY = stream(box.ypoints).min().orElseThrow(), rightX = stream(box.xpoints).max().orElseThrow(), downY = stream(box.ypoints).max().orElseThrow();
                 if (upY <= 0) {
-                    object.setY(distY);
+                    object.setY(distY + 1);
                     if (!(object instanceof Player)) walls.add(UP);
                 }
 
                 if (leftX <= 0) {
-                    object.setX(distX);
+                    object.setX(distX + 1);
                     walls.add(LEFT);
                 }
 
                 if (downY >= bounds.height) {
                     applier.getGravityVelocity().setY(0);
-                    object.setY(bounds.y + bounds.height - downY + upY - distY);
+                    object.setY(bounds.y + bounds.height - downY + upY - distY - 1);
                     walls.add(DOWN);
                 }
 
                 if (rightX >= bounds.width) {
-                    object.setX(bounds.x + bounds.width - rightX + leftX - distX * 2);
+                    object.setX(bounds.x + bounds.width - rightX + leftX - distX * 2 - 1);
                     walls.add(RIGHT);
                 }
 
-                walls.forEach(wall -> applier.gravityVelocity.set(
-                        applier.gravityVelocity.sub(
-                                wall.normal().mul(2 * applier.gravityVelocity.dot(wall.normal()))
-                        )
-                ));
+//                walls.forEach(wall -> applier.gravityVelocity.set(
+//                        applier.gravityVelocity.sub(
+//                                wall.normal().mul(2 * applier.gravityVelocity.dot(wall.normal()))
+//                        )
+//                ));
 
                 object.handleWallCollision(walls.toArray(new Wall[0]));
             }
