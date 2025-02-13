@@ -76,11 +76,11 @@ public class PhysicsHandler {
                     walls.add(RIGHT);
                 }
 
-//                walls.forEach(wall -> applier.gravityVelocity.set(
-//                        applier.gravityVelocity.sub(
-//                                wall.normal().mul(2 * applier.gravityVelocity.dot(wall.normal()))
-//                        )
-//                ));
+                walls.forEach(wall -> applier.gravityVelocity.set(
+                        applier.gravityVelocity.sub(
+                                wall.normal().mul(2 * applier.gravityVelocity.dot(wall.normal()))
+                        )
+                ));
 
                 object.handleWallCollision(walls.toArray(new Wall[0]));
             }
