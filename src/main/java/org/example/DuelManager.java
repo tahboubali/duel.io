@@ -1,34 +1,32 @@
 package org.example;
 
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.Arrays;
-import java.util.Locale;
 import java.util.Map;
 
 import org.example.ConnectionHandler.MessageObserver;
 
 public class DuelManager implements MessageObserver {
     private final static int WIDTH = 350, HEIGHT = 275;
-    private ConnectionHandler connectionHandler;
-    private final JPanel duelPanel;
+    private final ConnectionHandler connectionHandler;
+    private final Point position;
+    private final GamePanel gamePanel;
+    private Vec2 delta;
     private boolean pressed;
+    private boolean visible;
 
     public DuelManager(ConnectionHandler connectionHandler, GamePanel gamePanel) {
         this.connectionHandler = connectionHandler;
-        connectionHandler.addObserver(this);
-        duelPanel = new JPanel();
-        duelPanel.setPreferredSize(new Dimension(WIDTH, HEIGHT));
-        var gamePanelSize = gamePanel.getPreferredSize();
-        duelPanel.setLocation(gamePanelSize.width - WIDTH - 20, gamePanelSize.height - HEIGHT - 20);
-        gamePanel.add(duelPanel);
-        duelPanel.setFocusable(true);
-        duelPanel.addMouseListener(new MouseAdapter() {
+        position = new Point(gamePanel.getWidth() / 2 - WIDTH / 2, gamePanel.getHeight() / 2 - HEIGHT / 2);
+        this.gamePanel = gamePanel;
+        gamePanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                pressed = true;
+                if (new Rectangle(position.x, position.y, WIDTH, HEIGHT).contains(e.getPoint())) {
+                    pressed = true;
+                    delta = Vec2.delta(e.getPoint(), position);
+                }
             }
 
             @Override
@@ -36,25 +34,29 @@ public class DuelManager implements MessageObserver {
                 pressed = false;
             }
         });
-        duelPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK, 5));
-        duelPanel.setVisible(true);
-    }
-
-    public boolean isPressed() {
-        return pressed;
+        connectionHandler.addObserver(this);
+        this.visible = true;
     }
 
     public void update() {
-        duelPanel.setVisible(!KeyHandler.isHide());
+        visible = !KeyHandler.isHide();
+        if (visible) {
+            var mousePos = gamePanel.getMousePosition();
+            if (pressed && mousePos != null) {
+                position.setLocation(Vec2.of(mousePos).add(delta).asPoint());
+            }
+        }
     }
 
-    public void draw() {
-        duelPanel.repaint();
-    }
-
-    public void setLocation(Point point) {
-        if (point == null) return;
-        this.duelPanel.setLocation(point.x - WIDTH / 2, point.y - HEIGHT / 2);
+    public void draw(Graphics2D g2d) {
+        if (visible) {
+            int arcWidth = 30, arcHeight = 30;
+            g2d.setColor(Color.WHITE);
+            g2d.fillRoundRect(position.x, position.y, WIDTH, HEIGHT, arcWidth, arcHeight);
+            g2d.setColor(Color.BLACK);
+            g2d.setStroke(new BasicStroke(4.5f));
+            g2d.drawRoundRect(position.x, position.y, WIDTH, HEIGHT, arcWidth, arcHeight);
+        }
     }
 
     @Override

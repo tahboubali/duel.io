@@ -93,22 +93,19 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     private void update(double dt) {
         player.update(dt);
         physicsHandler.update(dt);
-        if (duelManager.isPressed() && getMousePosition() != null) {
-            duelManager.setLocation(getMousePosition());
-        }
         duelManager.update();
     }
 
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        if (duelManager != null)
-            duelManager.draw();
         var g2d = (Graphics2D) g;
         g2d.drawString("FPS: " + currFPS, 20, 50);
         if (player != null)
             player.draw(g2d);
         if (Arrays.stream(getComponents()).toList().contains(titleScreen))
             titleScreen.repaint();
+        if (duelManager != null)
+            duelManager.draw(g2d);
         g.dispose();
     }
 

@@ -155,8 +155,9 @@ public class PhysicsHandler {
 
         public void apply(double dt) {
             var position = object.getPosition();
-            var velocity = object.getVelocity().mul(dt).add(Vec2.of(0, this.gravityVelocity.getY() * dt));
-            object.setPosition((velocity.add(position)));
+            var velocity = object.getVelocity().mul(dt);
+            velocity.set(velocity.add(Vec2.of(0, this.gravityVelocity.getY() * dt)));
+            object.setPosition(velocity.add(position));
             object.setAngle(velocity.asAngle());
         }
 

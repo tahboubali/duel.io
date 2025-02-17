@@ -67,9 +67,9 @@ public class Player implements PhysicsObject {
         if (isRightClicked()) {
             int MAX_VELOCITY = 120;
             var direction = shooter.getDirection().mul(MAX_VELOCITY);
-            var block = new Block(position.getX() + WIDTH / 2d + direction.getX() - Block.WIDTH / 2d,
-                    position.getY() + HEIGHT / 2d + direction.getY() - Block.HEIGHT / 2d, Color.GREEN, this, gamePanel);
-            block.getVelocity().set(direction.mul(.002));
+            var block = new Block(position.getX() + WIDTH / 2d + direction.getX() *.75 - Block.WIDTH / 2d,
+                    position.getY() + HEIGHT / 2d + direction.getY() * .75 - Block.HEIGHT / 2d, Color.GREEN, this, gamePanel);
+            block.getVelocity().set(direction.mul(.0015));
             var intersects = false;
             for (var other : blocks.stream().map(Block::getCollisionPoly).toList()) {
                 if (intersects(block.getCollisionPoly(), other)) {
@@ -88,7 +88,7 @@ public class Player implements PhysicsObject {
             if (position.getY() + HEIGHT >= gamePanel.getSize().height - 1) {
                 jumping = false;
             }
-            velocity.setY(-JUMP_VELOCITY);
+            velocity.setY(velocity.getY() - JUMP_VELOCITY);
         }
         shooter.update(dt);
         synchronized (blocks) {
