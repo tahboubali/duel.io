@@ -99,6 +99,7 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         var g2d = (Graphics2D) g;
+        g2d.setColor(Color.WHITE);
         g2d.drawString("FPS: " + currFPS, 20, 50);
         if (player != null)
             player.draw(g2d);
@@ -106,7 +107,7 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
             titleScreen.repaint();
         if (duelManager != null)
             duelManager.draw(g2d);
-        g.dispose();
+//        g.dispose();
     }
 
     public void addPhysicsObject(PhysicsObject object) {

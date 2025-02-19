@@ -7,6 +7,8 @@ import java.util.Map;
 
 import org.example.ConnectionHandler.MessageObserver;
 
+import javax.swing.*;
+
 public class DuelManager implements MessageObserver {
     private final static int WIDTH = 350, HEIGHT = 275;
     private final ConnectionHandler connectionHandler;
@@ -34,6 +36,8 @@ public class DuelManager implements MessageObserver {
                 pressed = false;
             }
         });
+        var button = new JButton("yo");
+        gamePanel.add(button);
         connectionHandler.addObserver(this);
         this.visible = true;
     }
@@ -54,13 +58,12 @@ public class DuelManager implements MessageObserver {
             g2d.setColor(Color.WHITE);
             g2d.fillRoundRect(position.x, position.y, WIDTH, HEIGHT, arcWidth, arcHeight);
             g2d.setColor(Color.BLACK);
-            g2d.setStroke(new BasicStroke(4.5f));
+            g2d.setStroke(new BasicStroke(7f));
             g2d.drawRoundRect(position.x, position.y, WIDTH, HEIGHT, arcWidth, arcHeight);
         }
     }
 
     @Override
     public void handleMessage(Map<String, Object> message) {
-
     }
 }

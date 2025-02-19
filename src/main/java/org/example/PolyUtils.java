@@ -16,8 +16,9 @@ public class PolyUtils {
         if (!first.getBounds().intersects(second.getBounds()))
             return false;
         for (int i = 0; i < first.npoints; i++)
-            if (second.contains(first.xpoints[i], first.ypoints[i]))
+            if (second.contains(first.xpoints[i], first.ypoints[i])) {
                 return true;
+            }
         for (int i = 0; i < second.npoints; i++)
             if (first.contains(second.xpoints[i], second.ypoints[i]))
                 return true;
