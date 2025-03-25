@@ -16,13 +16,13 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     private final PhysicsHandler physicsHandler;
     private final ConnectionHandler connectionHandler;
     private final TitleScreenPanel titleScreen;
-    private DuelManager duelManager;
     private boolean running;
     private int currFPS;
 
     public GamePanel() {
         setBackground(Color.DARK_GRAY);
         setPreferredSize(SIZE);
+        System.out.println(Toolkit.getDefaultToolkit().getScreenSize());
         addKeyListener(KeyHandler.getInstance());
         addMouseListener(MouseHandler.getInstance());
         setFocusable(true);
@@ -32,6 +32,11 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         titleScreen = new TitleScreenPanel();
         add(titleScreen, BorderLayout.CENTER);
         this.physicsHandler = new PhysicsHandler(this);
+    }
+
+    @Override
+    public int getWidth() {
+        return super.getWidth();
     }
 
     private void setPlayer() {
@@ -47,7 +52,6 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
                 )
         ));
         remove(titleScreen);
-        this.duelManager = new DuelManager(connectionHandler, this);
     }
 
     public void run() {
@@ -59,16 +63,16 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
             throw new IllegalStateException("Game is already running.");
 
         running = true;
-        long lastFPS = System.currentTimeMillis();
+        long lastFPSCheckMillis = System.currentTimeMillis();
         int frames = 0;
         while (running) {
             frames++;
             double now = System.currentTimeMillis();
             update(now - last);
             repaint();
-            if (now - lastFPS >= 500) {
-                currFPS = (int) Math.round(1000d / ((now - lastFPS) / frames));
-                lastFPS = Math.round(now);
+            if (now - lastFPSCheckMillis >= 500) {
+                currFPS = (int) Math.round(1000d / ((now - lastFPSCheckMillis) / frames));
+                lastFPSCheckMillis = Math.round(now);
                 frames = 0;
             }
             last = now;
@@ -93,7 +97,6 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     private void update(double dt) {
         player.update(dt);
         physicsHandler.update(dt);
-        duelManager.update();
     }
 
     protected void paintComponent(Graphics g) {
@@ -105,9 +108,7 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
             player.draw(g2d);
         if (Arrays.stream(getComponents()).toList().contains(titleScreen))
             titleScreen.repaint();
-        if (duelManager != null)
-            duelManager.draw(g2d);
-//        g.dispose();
+        g.dispose();
     }
 
     public void addPhysicsObject(PhysicsObject object) {
@@ -115,6 +116,5 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     }
 
     public void handleMessage(Map<String, Object> message) {
-
     }
 }
