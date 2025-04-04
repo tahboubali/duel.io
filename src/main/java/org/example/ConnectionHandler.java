@@ -36,38 +36,89 @@ public class ConnectionHandler implements Runnable {
     private void connect() {
         final Duration POLL = Duration.ofSeconds(5);
         boolean connected = false;
-        while (!connected) {
-            try (var client = newHttpClient()) {
-                connectionStatusMessage = ConnectionStatus.CONNECTING;
-                var ws = client.newWebSocketBuilder().buildAsync(new URI("ws://localhost:8080/connect"), new WebSocket.Listener() {
-                    @Override
-                    public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
-                        return CompletableFuture.supplyAsync(() -> {
-                            notifyObservers(fromJson(data));
-                            return data;
-                        });
-                    }
-                }).get();
-                connectionStatusMessage = ConnectionStatus.SUCCESS;
-                connected = true;
 
-                while (Thread.currentThread().isAlive()) {
-                    if (!sendQueue.isEmpty())
-                        ws.sendText(sendQueue.poll(), true);
+        while (!connected) {
+            try {
+                var client = newHttpClient();
+                connectionStatusMessage = ConnectionStatus.CONNECTING;
+
+                CompletableFuture<WebSocket> wsFuture = client.newWebSocketBuilder()
+                        .buildAsync(new URI("ws://localhost:8080/connect"), new WebSocket.Listener() {
+                            @Override
+                            public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
+                                try {
+                                    System.out.println(data);
+                                    notifyObservers(fromJson(data));
+                                } catch (Exception e) {
+                                    System.err.println("Error processing message: " + e.getMessage());
+                                } finally {
+                                    webSocket.request(1);
+                                }
+                                return CompletableFuture.completedFuture(null);
+                            }
+
+
+                            @Override
+                            public void onOpen(WebSocket webSocket) {
+                                connectionStatusMessage = ConnectionStatus.SUCCESS;
+                                System.out.println("Connected to server.");
+                                webSocket.request(1);
+                            }
+
+                            @Override
+                            public void onError(WebSocket webSocket, Throwable error) {
+                                System.err.println("WebSocket error: " + error.getMessage());
+                                reconnect();
+                                connectionStatusMessage = ConnectionStatus.FAILED;
+                            }
+
+                            @Override
+                            public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
+                                System.out.println("WebSocket closed: " + reason);
+                                connectionStatusMessage = ConnectionStatus.FAILED;
+                                reconnect();
+                                return CompletableFuture.completedFuture(null);
+                            }
+                        });
+
+                var ws = wsFuture.get();
+                connected = true;
+                while (!ws.isInputClosed()) {
+                    var message = sendQueue.poll();
+                    if (message != null) {
+                        ws.sendText(message, true);
+                    }
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
-            } catch (URISyntaxException | InterruptedException | ExecutionException _) {
+            } catch (URISyntaxException | InterruptedException | ExecutionException e) {
                 connectionStatusMessage = ConnectionStatus.FAILED;
+                System.err.println("Connection failed, retrying in " + POLL.getSeconds() + " seconds...");
                 try {
-                    Thread.sleep(POLL);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
+                    Thread.sleep(POLL.toMillis());
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(ex);
                 }
             }
         }
     }
 
+    private void reconnect() {
+        if (Main.getUsername() != null) {
+            sendQueue.add(GSON.toJson(Map.of(
+                    "request_type", "new-player",
+                    "data", Map.of("username", Main.getUsername())
+            )));
+        }
+        run();
+    }
+
     private Map<String, Object> fromJson(CharSequence data) {
-        return  GSON.<Map<String, Object>>fromJson(data.toString(), Map.class);
+        return GSON.<Map<String, Object>>fromJson(data.toString(), Map.class);
     }
 
     private void notifyObservers(Map<String, Object> message) {
@@ -77,6 +128,7 @@ public class ConnectionHandler implements Runnable {
     }
 
     public void sendMessage(Map<String, Object> message) {
+        System.out.println(GSON.toJson(message));
         sendQueue.add(GSON.toJson(message));
     }
 
@@ -90,11 +142,11 @@ public class ConnectionHandler implements Runnable {
     public enum ConnectionStatus {
         CONNECTING, FAILED, SUCCESS;
 
-        public String getMessage() {
+        public String toString() {
             return switch (this) {
-                case CONNECTING -> "Connecting to server...";
-                case FAILED -> "Successfully connected to server.";
-                case SUCCESS -> "Failed to connect to server.";
+                case CONNECTING -> "Connecting...";
+                case FAILED -> "Failed.";
+                case SUCCESS -> "Success.";
             };
         }
     }

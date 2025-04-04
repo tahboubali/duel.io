@@ -18,14 +18,15 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     private final TitleScreenPanel titleScreen;
     private boolean running;
     private int currFPS;
+    private SidePanel sidePanel;
 
     public GamePanel() {
         setBackground(Color.DARK_GRAY);
         setPreferredSize(SIZE);
-        System.out.println(Toolkit.getDefaultToolkit().getScreenSize());
         addKeyListener(KeyHandler.getInstance());
         addMouseListener(MouseHandler.getInstance());
         setFocusable(true);
+        requestFocusInWindow();
         this.connectionHandler = new ConnectionHandler();
         connectionHandler.addObserver(this);
         startVirtualThread(connectionHandler);
@@ -51,6 +52,7 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
                         "username", username
                 )
         ));
+        Main.setUsername(username);
         remove(titleScreen);
     }
 
@@ -108,7 +110,6 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
             player.draw(g2d);
         if (Arrays.stream(getComponents()).toList().contains(titleScreen))
             titleScreen.repaint();
-        g.dispose();
     }
 
     public void addPhysicsObject(PhysicsObject object) {
@@ -116,5 +117,18 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     }
 
     public void handleMessage(Map<String, Object> message) {
+    }
+
+    public void createSidePanel() {
+        sidePanel = new SidePanel(connectionHandler);
+        sidePanel.setSize(200, 700);
+        sidePanel.setBackground(new Color(0, 0, 0, 150));
+        sidePanel.setLocation(
+                (int) Toolkit.getDefaultToolkit().getScreenSize().getWidth() - 10 - sidePanel.getWidth(),
+                10
+        );
+        getParent().add(sidePanel, JLayeredPane.PALETTE_LAYER);
+        addKeyListener(KeyHandler.getInstance());
+        setFocusable(true);
     }
 }
