@@ -14,20 +14,41 @@ public class SidePanel extends JPanel implements MessageObserver {
         connectionHandler.addObserver(this);
         var duelButton = new JButton("Enter Duel");
         setLayout(null);
-        duelButton.setBounds(20, 50, 120, 30);
+        duelButton.setBounds(20, 80, 120, 30);
         add(duelButton);
         duelButton.addActionListener(_ -> {
             onDuelButtonClick();
             requestFocusInWindow();
         });
         addKeyListener(KeyHandler.getInstance());
+        addMouseListener(MouseHandler.getInstance());
         setFocusable(true);
     }
 
+    @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         g.setColor(Color.WHITE);
-        g.drawString("Options", 20, 30);
+        var defaultFont = g.getFont();
+        g.setFont(new Font(defaultFont.getFontName(), defaultFont.getStyle(), 20));
+        g.drawString("Side Panel", 20, 35);
+        g.setFont(defaultFont);
+        drawConnectionStatus(g, 20, 60);
+    }
+
+    private void drawConnectionStatus(Graphics g, int x, int y) {
+        var label = "Connection: ";
+        var status = connectionHandler.getConnectionStatus();
+        g.setColor(Color.WHITE);
+        g.drawString(label, x, y);
+        var fm = g.getFontMetrics();
+        int labelWidth = fm.stringWidth(label);
+        g.setColor(switch (status) {
+            case SUCCESS -> Color.GREEN;
+            case CONNECTING -> Color.ORANGE;
+            case FAILED -> Color.RED;
+        });
+        g.drawString(status.toString(), x + labelWidth, y);
     }
 
     public void onDuelButtonClick() {

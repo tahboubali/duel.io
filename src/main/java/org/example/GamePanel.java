@@ -18,7 +18,6 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     private final TitleScreenPanel titleScreen;
     private boolean running;
     private int currFPS;
-    private SidePanel sidePanel;
 
     public GamePanel() {
         setBackground(Color.DARK_GRAY);
@@ -117,10 +116,25 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     }
 
     public void handleMessage(Map<String, Object> message) {
+        if (message.get("request_type") instanceof String requestType)
+            switch (requestType) {
+                case "new-player-success" -> {
+                    var data = message.get("data");
+                    if (data instanceof Map<?, ?> dataMap) {
+                        Main.setUsername(dataMap.get("username").toString());
+                        remove(titleScreen);
+                    }
+                }
+                case "new-player-error" -> {
+                    //TODO
+                }
+                default -> {
+                }
+            }
     }
 
     public void createSidePanel() {
-        sidePanel = new SidePanel(connectionHandler);
+        var sidePanel = new SidePanel(connectionHandler);
         sidePanel.setSize(200, 700);
         sidePanel.setBackground(new Color(0, 0, 0, 150));
         sidePanel.setLocation(

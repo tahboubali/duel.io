@@ -145,8 +145,8 @@ public class ConnectionHandler implements Runnable {
         public String toString() {
             return switch (this) {
                 case CONNECTING -> "Connecting...";
-                case FAILED -> "Failed.";
-                case SUCCESS -> "Success.";
+                case FAILED -> "Failed";
+                case SUCCESS -> "Connected";
             };
         }
     }
