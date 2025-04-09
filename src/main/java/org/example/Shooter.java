@@ -64,9 +64,8 @@ public class Shooter implements GameObj {
         if (facingLeft) {
             r1.y += r2.height - r1.height;
             xOffset = -getWidth(player.getCollisionPoly()) / 2;
-        } else {
+        } else
             xOffset = getWidth(player.getCollisionPoly()) / 2;
-        }
         xOffset -= r1.width / 2;
         g2d.setColor(Color.WHITE);
         g2d.drawString(new DecimalFormat("0.00").format(round((-toDegrees(getAngle()) < 0 ? -toDegrees(getAngle()) + 360 : -toDegrees(getAngle())) * 10000) / 10000d) + "°", 10, 100);

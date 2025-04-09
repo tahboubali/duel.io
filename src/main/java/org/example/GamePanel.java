@@ -29,7 +29,7 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         this.connectionHandler = new ConnectionHandler();
         connectionHandler.addObserver(this);
         startVirtualThread(connectionHandler);
-        titleScreen = new TitleScreenPanel();
+        titleScreen = new TitleScreenPanel(connectionHandler);
         add(titleScreen, BorderLayout.CENTER);
         this.physicsHandler = new PhysicsHandler(this);
     }
@@ -45,12 +45,6 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         var player = new Player(this, username);
         this.player = player;
         addPhysicsObject(player);
-        connectionHandler.sendMessage(Map.of(
-                "request_type", "new-player",
-                "data", Map.of(
-                        "username", username
-                )
-        ));
         Main.setUsername(username);
         remove(titleScreen);
     }
@@ -104,7 +98,7 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         super.paintComponent(g);
         var g2d = (Graphics2D) g;
         g2d.setColor(Color.WHITE);
-        g2d.drawString("FPS: " + currFPS, 20, 50);
+        g2d.drawString("FPS: " + currFPS, 30, 50);
         if (player != null)
             player.draw(g2d);
         if (Arrays.stream(getComponents()).toList().contains(titleScreen))
@@ -116,21 +110,6 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     }
 
     public void handleMessage(Map<String, Object> message) {
-        if (message.get("request_type") instanceof String requestType)
-            switch (requestType) {
-                case "new-player-success" -> {
-                    var data = message.get("data");
-                    if (data instanceof Map<?, ?> dataMap) {
-                        Main.setUsername(dataMap.get("username").toString());
-                        remove(titleScreen);
-                    }
-                }
-                case "new-player-error" -> {
-                    //TODO
-                }
-                default -> {
-                }
-            }
     }
 
     public void createSidePanel() {
