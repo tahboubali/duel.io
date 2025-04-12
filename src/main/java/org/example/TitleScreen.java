@@ -9,14 +9,14 @@ import java.util.Map;
 
 import static javax.swing.JOptionPane.showMessageDialog;
 
-public class TitleScreenPanel extends JPanel implements ConnectionHandler.MessageObserver {
+public class TitleScreen extends JPanel implements ConnectionHandler.MessageObserver {
     private final int WIDTH = 500;
     private String username;
     private final JTextField text;
     private boolean registered;
     private final ConnectionHandler connectionHandler;
 
-    public TitleScreenPanel(ConnectionHandler connectionHandler) {
+    public TitleScreen(ConnectionHandler connectionHandler) {
         int HEIGHT = 800;
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
         setLayout(null);
@@ -76,8 +76,8 @@ public class TitleScreenPanel extends JPanel implements ConnectionHandler.Messag
                 } else {
                     sendNewPlayer();
                     returnUsername = username;
-                    username = null;
                 }
+                username = null;
             }
             try {
                 Thread.sleep(POLL_RATE);
@@ -107,7 +107,6 @@ public class TitleScreenPanel extends JPanel implements ConnectionHandler.Messag
         } else if (requestType.equals("new-player-error")) {
             showMessageDialog(this, "Error: " + message.get("message"), "Error", JOptionPane.ERROR_MESSAGE);
             username = null;
-            text.setText("");
         }
     }
 }

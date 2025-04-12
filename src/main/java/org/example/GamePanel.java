@@ -12,12 +12,14 @@ import static org.example.ConnectionHandler.MessageObserver;
 public class GamePanel extends JPanel implements Runnable, MessageObserver {
     public static final Dimension SIZE = Toolkit.getDefaultToolkit().getScreenSize();
     private static final int TARGET_FPS = 350;
-    private Player player;
     private final PhysicsHandler physicsHandler;
     private final ConnectionHandler connectionHandler;
-    private final TitleScreenPanel titleScreen;
+    private final TitleScreen titleScreen;
     private boolean running;
     private int currFPS;
+    private boolean dueling;
+    private boolean matchmaking;
+    private Player player;
 
     public GamePanel() {
         setBackground(Color.DARK_GRAY);
@@ -29,7 +31,7 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         this.connectionHandler = new ConnectionHandler();
         connectionHandler.addObserver(this);
         startVirtualThread(connectionHandler);
-        titleScreen = new TitleScreenPanel(connectionHandler);
+        titleScreen = new TitleScreen(connectionHandler);
         add(titleScreen, BorderLayout.CENTER);
         this.physicsHandler = new PhysicsHandler(this);
     }
@@ -54,8 +56,7 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         double drawInterval = 1_000_000_000. / (TARGET_FPS);
         double nextDrawTime = System.nanoTime() + drawInterval;
         double last = System.currentTimeMillis();
-        if (running)
-            throw new IllegalStateException("Game is already running.");
+        if (running) throw new IllegalStateException("Game is already running.");
 
         running = true;
         long lastFPSCheckMillis = System.currentTimeMillis();
@@ -64,6 +65,7 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
             frames++;
             double now = System.currentTimeMillis();
             update(now - last);
+
             repaint();
             if (now - lastFPSCheckMillis >= 500) {
                 currFPS = (int) Math.round(1000d / ((now - lastFPSCheckMillis) / frames));
@@ -76,11 +78,9 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
                 double remainingTime = nextDrawTime - curr;
                 remainingTime /= 1000000;
 
-                if (remainingTime < 0)
-                    remainingTime = 0;
+                if (remainingTime < 0) remainingTime = 0;
 
                 sleep((long) remainingTime);
-
                 nextDrawTime += drawInterval;
 
             } catch (InterruptedException e) {
@@ -99,10 +99,9 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         var g2d = (Graphics2D) g;
         g2d.setColor(Color.WHITE);
         g2d.drawString("FPS: " + currFPS, 30, 50);
-        if (player != null)
-            player.draw(g2d);
-        if (Arrays.stream(getComponents()).toList().contains(titleScreen))
-            titleScreen.repaint();
+        if (player != null) player.draw(g2d);
+        if (Arrays.stream(getComponents()).toList().contains(titleScreen)) titleScreen.repaint();
+        g.dispose();
     }
 
     public void addPhysicsObject(PhysicsObject object) {
@@ -110,16 +109,30 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     }
 
     public void handleMessage(Map<String, Object> message) {
+        switch ((String) message.get("request_type")) {
+            case "enter-duel" -> {
+                var status = (int) message.get("status");
+                if (status == 0) {
+                    matchmaking = true;
+                    dueling = false;
+                } else {
+                    dueling = true;
+                    matchmaking = false;
+
+                }
+            }
+            case "game-end" -> {
+                matchmaking = false;
+                dueling = false;
+            }
+        }
     }
 
     public void createSidePanel() {
         var sidePanel = new SidePanel(connectionHandler);
         sidePanel.setSize(200, 700);
         sidePanel.setBackground(new Color(0, 0, 0, 150));
-        sidePanel.setLocation(
-                (int) Toolkit.getDefaultToolkit().getScreenSize().getWidth() - 10 - sidePanel.getWidth(),
-                10
-        );
+        sidePanel.setLocation((int) Toolkit.getDefaultToolkit().getScreenSize().getWidth() - 10 - sidePanel.getWidth(), 10);
         getParent().add(sidePanel, JLayeredPane.PALETTE_LAYER);
         addKeyListener(KeyHandler.getInstance());
         setFocusable(true);

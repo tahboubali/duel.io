@@ -1,7 +1,9 @@
 package org.example;
 
 import com.google.gson.*;
+import com.google.gson.reflect.TypeToken;
 
+import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.WebSocket;
@@ -82,6 +84,9 @@ public class ConnectionHandler implements Runnable {
                         });
 
                 var ws = wsFuture.get();
+                Runtime.getRuntime().addShutdownHook(new Thread(() ->
+                        ws.sendText("{\"request_type\": \"sign-out\"}", true)
+                ));
                 connected = true;
                 while (!ws.isInputClosed()) {
                     var message = sendQueue.poll();
@@ -99,9 +104,9 @@ public class ConnectionHandler implements Runnable {
                 System.err.println("Connection failed, retrying in " + POLL.getSeconds() + " seconds...");
                 try {
                     Thread.sleep(POLL.toMillis());
-                } catch (InterruptedException ex) {
+                } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
-                    throw new RuntimeException(ex);
+                    throw new RuntimeException(ie);
                 }
             }
         }
@@ -118,8 +123,11 @@ public class ConnectionHandler implements Runnable {
     }
 
     private Map<String, Object> fromJson(CharSequence data) {
-        return GSON.<Map<String, Object>>fromJson(data.toString(), Map.class);
+        var type = new TypeToken<Map<String, Object>>() {
+        }.getType();
+        return GSON.fromJson(data.toString(), type);
     }
+
 
     private void notifyObservers(Map<String, Object> message) {
         for (var observer : observers) {
@@ -128,7 +136,6 @@ public class ConnectionHandler implements Runnable {
     }
 
     public void sendMessage(Map<String, Object> message) {
-        System.out.println(GSON.toJson(message));
         sendQueue.add(GSON.toJson(message));
     }
 
