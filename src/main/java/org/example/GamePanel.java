@@ -20,6 +20,7 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     private boolean dueling;
     private boolean matchmaking;
     private Player player;
+    private Opponent opponent;
 
     public GamePanel() {
         setBackground(Color.DARK_GRAY);
@@ -82,7 +83,6 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
 
                 sleep((long) remainingTime);
                 nextDrawTime += drawInterval;
-
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -92,6 +92,13 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     private void update(double dt) {
         player.update(dt);
         physicsHandler.update(dt);
+        if (opponent != null) opponent.update(dt);
+        if (dueling) {
+            connectionHandler.sendMessage(Map.of(
+                    "request_type", "game-state",
+                    "data", player.getUpdateInfo()
+            ));
+        }
     }
 
     protected void paintComponent(Graphics g) {
@@ -100,6 +107,7 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         g2d.setColor(Color.WHITE);
         g2d.drawString("FPS: " + currFPS, 30, 50);
         if (player != null) player.draw(g2d);
+        if (opponent != null) opponent.draw(g2d);
         if (Arrays.stream(getComponents()).toList().contains(titleScreen)) titleScreen.repaint();
         g.dispose();
     }
@@ -111,14 +119,14 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     public void handleMessage(Map<String, Object> message) {
         switch ((String) message.get("request_type")) {
             case "enter-duel" -> {
-                var status = (int) message.get("status");
+                var status = ((Number) message.get("status")).intValue();
                 if (status == 0) {
                     matchmaking = true;
                     dueling = false;
                 } else {
                     dueling = true;
                     matchmaking = false;
-
+                    enterDuel(message);
                 }
             }
             case "game-end" -> {
@@ -126,6 +134,25 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
                 dueling = false;
             }
         }
+    }
+
+    private void enterDuel(Map<String, Object> message) {
+        var position = (String) message.get("position");
+        player.startDuel(position);
+        opponent = new Opponent(this, (String) ((Map<?, ?>) message.get("match")).get("username"));
+        opponent.startDuel(position.equals("left") ? "right" : "left");
+        /*
+        	_ = p.conn.WriteJSON(map[string]any{
+                "request_type": "enter-duel",
+                "message":      fmt.Sprintf("Successfully started duel with \"%s\"", other.Username),
+                "status":       FoundDuelStatus,
+                "position":     pos,
+                "match": map[string]any{
+                    "username": other.Username,
+                    "rank":     other.Rank,
+                },
+            })
+         */
     }
 
     public void createSidePanel() {

@@ -1,5 +1,7 @@
 package org.example;
 
+import com.google.gson.annotations.Expose;
+
 import java.awt.*;
 import java.awt.geom.Point2D;
 import java.util.function.BinaryOperator;
@@ -7,7 +9,12 @@ import java.util.function.BinaryOperator;
 import static java.lang.Math.*;
 
 public class Vec2 {
-    private double x, y;
+    @Expose
+    private double x;
+
+    @Expose
+    private double y;
+
     public final static BinaryOperator<Double>
             ADD = Double::sum,
             SUBTRACT = (a, b) -> a - b,

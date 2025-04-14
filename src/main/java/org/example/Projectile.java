@@ -25,6 +25,7 @@ public class Projectile implements PhysicsObject {
     private PhysicsHandler.GravityApplier gravityApplier;
     private long lastCollision;
     private final Player player;
+    private boolean destroy;
 
     public Projectile(GamePanel gamePanel, double x, double y, Vec2 direction, Player player) {
         int range = 10;
@@ -60,16 +61,8 @@ public class Projectile implements PhysicsObject {
         g2d.drawPolygon(getCollisionPoly());
     }
 
-    private boolean outOfBounds() {
-        var c = !(gamePanel.getBounds().contains(this.getCollisionPoly().getBounds()));
-        if (c) {
-            System.out.println(getCollisionPoly().getBounds());
-        }
-        return c;
-    }
-
     public boolean shouldDespawn() {
-        return /*outOfBounds() ||;*/ (timeSettled != 0 && System.currentTimeMillis() - timeSettled >= DESPAWN_TIME);
+        return destroy || (timeSettled != 0 && System.currentTimeMillis() - timeSettled >= DESPAWN_TIME);
     }
 
     private Rectangle getFittedBox() {
@@ -204,5 +197,9 @@ public class Projectile implements PhysicsObject {
 
     public Player getPlayer() {
         return player;
+    }
+
+    public void destroy() {
+        destroy = true;
     }
 }

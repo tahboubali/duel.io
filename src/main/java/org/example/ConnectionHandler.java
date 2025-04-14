@@ -1,9 +1,9 @@
 package org.example;
 
 import com.google.gson.*;
+import com.google.gson.annotations.Expose;
 import com.google.gson.reflect.TypeToken;
 
-import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.WebSocket;
@@ -21,7 +21,7 @@ import static java.net.http.HttpClient.newHttpClient;
 
 public class ConnectionHandler implements Runnable {
     private final Queue<String> sendQueue;
-    private final Gson GSON = new Gson().newBuilder().excludeFieldsWithoutExposeAnnotation().create();
+    public static final Gson GSON = new Gson().newBuilder().excludeFieldsWithoutExposeAnnotation().create();
     private ConnectionStatus connectionStatusMessage = ConnectionStatus.CONNECTING;
     private final List<MessageObserver> observers;
 
@@ -143,7 +143,11 @@ public class ConnectionHandler implements Runnable {
         return connectionStatusMessage;
     }
 
-    public record PlayerUpdateInfo(int x, int y, List<Projectile> projectiles, List<Block> blocks) {
+    public void addObserver(MessageObserver observer) {
+        observers.add(observer);
+    }
+
+    public record PlayerUpdateInfo(@Expose int x, @Expose int y, @Expose List<Projectile> projectiles, @Expose List<Block> blocks, @Expose double health, @Expose double shooterAngle) {
     }
 
     public enum ConnectionStatus {
@@ -156,10 +160,6 @@ public class ConnectionHandler implements Runnable {
                 case SUCCESS -> "Connected";
             };
         }
-    }
-
-    public void addObserver(MessageObserver observer) {
-        observers.add(observer);
     }
 
     public interface MessageObserver {

@@ -95,12 +95,11 @@ public class SidePanel extends JPanel implements MessageObserver {
 
     @Override
     public void handleMessage(Map<String, Object> message) {
-        switch ((String) message.get("request_type")) {
-            case "players-update" -> {
-                leaderboard = GSON.fromJson(GSON.toJson(message.get("players")), new TypeToken<ArrayList<LeaderboardPlayer>>() {
-                }.getType());
-                leaderboard.sort((p1, p2) -> (int) (p1.getRank() - p2.getRank()));
-            }
+        if (message.get("request_type").equals("players-update")) {
+            leaderboard = GSON.fromJson(
+                    GSON.toJson(message.get("players")),
+                    new TypeToken<ArrayList<LeaderboardPlayer>>() {}.getType()
+            );
         }
     }
 }

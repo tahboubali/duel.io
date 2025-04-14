@@ -99,7 +99,7 @@ public class Player implements PhysicsObject {
 
     @Override
     public void draw(Graphics2D g2d) {
-        g2d.setColor(Color.BLUE);
+        g2d.setColor(getColor());
         var point = position.asPoint();
         g2d.fillRect(point.x, point.y, WIDTH, HEIGHT);
         g2d.setColor(Color.BLACK);
@@ -111,6 +111,42 @@ public class Player implements PhysicsObject {
             shooter.draw(g2d);
             blocks.forEach(block -> block.draw(g2d));
         }
+    }
+
+    public void startDuel(String positionString) {
+        blocks.forEach(Block::destroy);
+        blocks.clear();
+        shooter.clearProjectiles();
+        var position = Vec2.zero();
+        position.setY(gamePanel.getHeight() / 2d - WIDTH / 2d);
+        if (positionString.equals("left")) {
+            position.setX(gamePanel.getWidth() / 4d - WIDTH / 2d);
+        } else {
+            position.setX((gamePanel.getWidth() - gamePanel.getWidth() / 4d) - WIDTH / 2d);
+        }
+        setPosition(position);
+    }
+
+    public Color getColor() {
+        return Color.BLUE;
+    }
+
+    protected void setBlocks(List<Block> blocks) {
+        //TODO revise
+        this.blocks.clear();
+        this.blocks.addAll(blocks);
+    }
+
+    protected void setProjectiles(List<Projectile> projectiles) {
+        shooter.setProjectiles(projectiles);
+    }
+
+    protected void setShooterAngle(double angle) {
+        shooter.getDirection().set(Vec2.of(cos(angle), sin(angle)));
+    }
+
+    protected void setHealth(double health) {
+        this.health = health;
     }
 
     public double getX() {
@@ -133,11 +169,6 @@ public class Player implements PhysicsObject {
 
     @Override
     public void setPosition(Vec2 vec2) {
-//        for (var object : gamePanel.getPhysicsObjects()) {
-//            if (object == this) continue;
-//            if (this.getCollisionPoly().getBounds().intersects(object.getCollisionPoly().getBounds()))
-//                PhysicsHandler.restrict(this, object);
-//        }
         position.set(Vec2.of(
                 max(0, min(vec2.getX(), gamePanel.getWidth() - WIDTH + .5)),
                 max(0, min(vec2.getY(), gamePanel.getHeight() - HEIGHT + .5))
@@ -196,7 +227,7 @@ public class Player implements PhysicsObject {
     }
 
     public PlayerUpdateInfo getUpdateInfo() {
-        return new PlayerUpdateInfo(round((float) getX()), round((float) getY()), shooter.getProjectiles(), blocks);
+        return new PlayerUpdateInfo(round((float) getX()), round((float) getY()), shooter.getProjectiles(), blocks, health, shooter.getDirection().asAngle());
     }
 
     @Override

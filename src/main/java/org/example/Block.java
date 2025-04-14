@@ -1,5 +1,7 @@
 package org.example;
 
+import com.google.gson.annotations.Expose;
+
 import java.awt.*;
 import java.time.Duration;
 
@@ -11,7 +13,8 @@ import static org.example.PhysicsHandler.GravityApplier;
 public class Block implements PhysicsObject {
     private final static int MAX_HEALTH = 10;
     private Color color;
-    private final Vec2 position;
+    @Expose
+    private Vec2 position;
     public static final int WIDTH = (int) round(40 * 1.76), HEIGHT = (int) round(40 * 1.76);
     private static final long DESPAWN_TIME = Duration.ofSeconds(40).toMillis();
     private final long createdMillis;
@@ -19,8 +22,10 @@ public class Block implements PhysicsObject {
     private long lastCollision;
     private final Vec2 velocity;
     private final Player player;
+    @Expose
     private double health;
     private final GamePanel gamePanel;
+    private boolean destroy;
 
     public Block(double x, double y, Color color, Player player, GamePanel gamePanel) {
         this.color = color;
@@ -30,6 +35,14 @@ public class Block implements PhysicsObject {
         this.player = player;
         health = MAX_HEALTH;
         this.gamePanel = gamePanel;
+    }
+
+    // used for Json serialization/deserialization
+    public Block() {
+        createdMillis = currentTimeMillis();
+        velocity = Vec2.zero();
+        this.player = null;
+        this.gamePanel = null;
     }
 
     @Override
@@ -91,7 +104,7 @@ public class Block implements PhysicsObject {
     }
 
     public boolean shouldDespawn() {
-        return currentTimeMillis() - createdMillis >= DESPAWN_TIME || health <= 0;
+        return destroy || currentTimeMillis() - createdMillis >= DESPAWN_TIME || health <= 0;
     }
 
     @Override
@@ -156,6 +169,10 @@ public class Block implements PhysicsObject {
     @Override
     public long lastCollision() {
         return lastCollision;
+    }
+
+    public void destroy() {
+        destroy = true;
     }
 
     public Player getPlayer() {
