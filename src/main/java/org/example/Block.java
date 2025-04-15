@@ -43,6 +43,7 @@ public class Block implements PhysicsObject {
         velocity = Vec2.zero();
         this.player = null;
         this.gamePanel = null;
+        color = Color.RED;
     }
 
     @Override
@@ -88,8 +89,8 @@ public class Block implements PhysicsObject {
     @Override
     public void setPosition(Vec2 vec2) {
         position.set(Vec2.of(
-                max(0, min(vec2.getX(), gamePanel.getWidth() - WIDTH + .5)),
-                max(0, min(vec2.getY(), gamePanel.getHeight() - HEIGHT + .5))
+                max(0, min(vec2.getX(), Main.getGamePanel().getWidth() - WIDTH + .5)),
+                max(0, min(vec2.getY(), Main.getGamePanel().getHeight() - HEIGHT + .5))
         ));
     }
 
@@ -115,7 +116,7 @@ public class Block implements PhysicsObject {
     @Override
     public void handleObjectCollision(PhysicsObject obj) {
         if (obj instanceof Projectile projectile) {
-            double damage = projectile.getVelocity().magnitude();
+            double damage = projectile.getDamageVelocity().magnitude();
             health -= damage;
         }
         if (this.getCollisionPoly().getBounds().getCenterY() < obj.getCollisionPoly().getBounds().getCenterY())
@@ -134,7 +135,6 @@ public class Block implements PhysicsObject {
 
     @Override
     public void setAngle(double angle) {
-
     }
 
     public Vec2 getVelocity() {

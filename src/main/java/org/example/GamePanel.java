@@ -1,5 +1,7 @@
 package org.example;
 
+import com.google.gson.reflect.TypeToken;
+
 import javax.swing.*;
 import java.awt.*;
 import java.util.Arrays;
@@ -7,6 +9,7 @@ import java.util.Map;
 
 import static java.lang.Thread.sleep;
 import static java.lang.Thread.startVirtualThread;
+import static org.example.ConnectionHandler.GSON;
 import static org.example.ConnectionHandler.MessageObserver;
 
 public class GamePanel extends JPanel implements Runnable, MessageObserver {
@@ -21,6 +24,11 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     private boolean matchmaking;
     private Player player;
     private Opponent opponent;
+    private Map<String, Object> prevUpdateInfo;
+    private long lastSendUpdate;
+    private boolean sentGameEnd;
+    private String headerMessage = "Lobby";
+    private Color headerColor = Color.BLACK;
 
     public GamePanel() {
         setBackground(Color.DARK_GRAY);
@@ -93,18 +101,49 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         player.update(dt);
         physicsHandler.update(dt);
         if (opponent != null) opponent.update(dt);
-        if (dueling) {
+        if (dueling && System.currentTimeMillis() - lastSendUpdate >= 20)
+            sendPlayerUpdate();
+        if (player.getHealth() <= 0 && !sentGameEnd) {
             connectionHandler.sendMessage(Map.of(
-                    "request_type", "game-state",
-                    "data", player.getUpdateInfo()
+                    "request_type", "game-end",
+                    "data", Map.of(
+                            "player_won", opponent.getName()
+                    )
             ));
+            sentGameEnd = true;
         }
+    }
+
+    private void sendPlayerUpdate() {
+        Map<String, Object> updateInfo = GSON.fromJson(GSON.toJson(player.getUpdateInfo()), new TypeToken<Map<String, Object>>() {
+        }.getType());
+        if (prevUpdateInfo == null) {
+            prevUpdateInfo = updateInfo;
+        } else {
+            if (updateInfo.equals(prevUpdateInfo)) return;
+            updateInfo.keySet().removeIf(key ->
+                    updateInfo.get(key).equals(prevUpdateInfo.getOrDefault(key, null))
+            );
+        }
+        connectionHandler.sendMessage(Map.of(
+                "request_type", "game-state",
+                "data", updateInfo
+        ));
+        prevUpdateInfo = updateInfo;
+        lastSendUpdate = System.currentTimeMillis();
     }
 
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         var g2d = (Graphics2D) g;
+        var previousFont = g2d.getFont();
+        g2d.setFont(new Font(previousFont.getFontName(), previousFont.getStyle(), 40));
+        var metrics = g2d.getFontMetrics();
+        int width = metrics.stringWidth(headerMessage);
+        g2d.setColor(headerColor);
+        g2d.drawString(headerMessage, getWidth() / 2 - width / 2, 100);
         g2d.setColor(Color.WHITE);
+        g2d.setFont(previousFont);
         g2d.drawString("FPS: " + currFPS, 30, 50);
         if (player != null) player.draw(g2d);
         if (opponent != null) opponent.draw(g2d);
@@ -121,9 +160,12 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
             case "enter-duel" -> {
                 var status = ((Number) message.get("status")).intValue();
                 if (status == 0) {
+                    headerColor = new Color(6, 122, 30);
+                    headerMessage = "Matchmaking...";
                     matchmaking = true;
                     dueling = false;
                 } else {
+                    sentGameEnd = false;
                     dueling = true;
                     matchmaking = false;
                     enterDuel(message);
@@ -132,6 +174,11 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
             case "game-end" -> {
                 matchmaking = false;
                 dueling = false;
+                opponent.destroy();
+                opponent = null;
+                player.resetHealth();
+                headerMessage = "Lobby";
+                headerColor = Color.BLACK;
             }
         }
     }
@@ -140,19 +187,10 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         var position = (String) message.get("position");
         player.startDuel(position);
         opponent = new Opponent(this, (String) ((Map<?, ?>) message.get("match")).get("username"));
+        connectionHandler.addObserver(opponent);
         opponent.startDuel(position.equals("left") ? "right" : "left");
-        /*
-        	_ = p.conn.WriteJSON(map[string]any{
-                "request_type": "enter-duel",
-                "message":      fmt.Sprintf("Successfully started duel with \"%s\"", other.Username),
-                "status":       FoundDuelStatus,
-                "position":     pos,
-                "match": map[string]any{
-                    "username": other.Username,
-                    "rank":     other.Rank,
-                },
-            })
-         */
+        headerColor = Color.RED;
+        headerMessage = "Dueling \"" + opponent.getName() + "\"!";
     }
 
     public void createSidePanel() {

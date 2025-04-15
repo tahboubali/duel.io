@@ -14,7 +14,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class Player implements PhysicsObject {
-    private static double MAX_HEALTH = 8;
+    private static final double MAX_HEALTH = 20, HEALTH_DECREMENT = 2.5;
     public static final int WIDTH = 30;
     public static final int HEIGHT = 66;
     private static final int SHOT_COOLDOWN_MILLIS = 320,
@@ -40,6 +40,7 @@ public class Player implements PhysicsObject {
         this.blocks = Collections.synchronizedList(new ArrayList<>());
         this.velocity = Vec2.zero();
         this.name = name;
+        this.health = MAX_HEALTH;
     }
 
     @Override
@@ -67,7 +68,7 @@ public class Player implements PhysicsObject {
         if (isRightClicked()) {
             int MAX_VELOCITY = 120;
             var direction = shooter.getDirection().mul(MAX_VELOCITY);
-            var block = new Block(position.getX() + WIDTH / 2d + direction.getX() *.75 - Block.WIDTH / 2d,
+            var block = new Block(position.getX() + WIDTH / 2d + direction.getX() * .75 - Block.WIDTH / 2d,
                     position.getY() + HEIGHT / 2d + direction.getY() * .75 - Block.HEIGHT / 2d, Color.GREEN, this, gamePanel);
             block.getVelocity().set(direction.mul(.0015));
             var intersects = false;
@@ -125,6 +126,7 @@ public class Player implements PhysicsObject {
             position.setX((gamePanel.getWidth() - gamePanel.getWidth() / 4d) - WIDTH / 2d);
         }
         setPosition(position);
+        resetHealth();
     }
 
     public Color getColor() {
@@ -132,9 +134,12 @@ public class Player implements PhysicsObject {
     }
 
     protected void setBlocks(List<Block> blocks) {
-        //TODO revise
-        this.blocks.clear();
-        this.blocks.addAll(blocks);
+        synchronized (this.blocks) {
+            this.blocks.forEach(Block::destroy);
+            this.blocks.clear();
+            this.blocks.addAll(blocks);
+            this.blocks.forEach(gamePanel::addPhysicsObject);
+        }
     }
 
     protected void setProjectiles(List<Projectile> projectiles) {
@@ -145,8 +150,24 @@ public class Player implements PhysicsObject {
         shooter.getDirection().set(Vec2.of(cos(angle), sin(angle)));
     }
 
+    protected void setFacingLeft(boolean facingLeft) {
+        shooter.setFacingLeft(facingLeft);
+    }
+
     protected void setHealth(double health) {
         this.health = health;
+    }
+
+    public void resetHealth() {
+        this.health = MAX_HEALTH;
+    }
+
+    public List<Block> getBlocks() {
+        return blocks;
+    }
+
+    public List<Projectile> getProjectiles() {
+        return shooter.getProjectiles();
     }
 
     public double getX() {
@@ -192,15 +213,14 @@ public class Player implements PhysicsObject {
 
     @Override
     public void handleObjectCollision(PhysicsObject obj) {
-        if (obj instanceof Block) {
-            if (position.getY() + HEIGHT >= obj.getY() && getY() < obj.getY()) {
-                jumping = false;
-                bounce(.4, Wall.DOWN);
-                getGravityApplier().getGravityVelocity().setY(0);
-            }
+        if (position.getY() + HEIGHT >= obj.getY() && getY() < obj.getY()) {
+            jumping = false;
+            bounce(.4, Wall.DOWN);
+            if (gravityApplier != null)
+                gravityApplier.getGravityVelocity().setY(0);
         }
-        if (obj instanceof Projectile projectile) {
-            health -= projectile.getVelocity().magnitude();
+        if (obj instanceof Projectile projectile && projectile.getPlayer() != this && !(this instanceof Opponent)) {
+            health = max(0, health - HEALTH_DECREMENT);
         }
     }
 
@@ -222,12 +242,16 @@ public class Player implements PhysicsObject {
         return velocity;
     }
 
+    public double getHealth() {
+        return health;
+    }
+
     public String getName() {
         return name;
     }
 
     public PlayerUpdateInfo getUpdateInfo() {
-        return new PlayerUpdateInfo(round((float) getX()), round((float) getY()), shooter.getProjectiles(), blocks, health, shooter.getDirection().asAngle());
+        return new PlayerUpdateInfo(round((float) getX()), round((float) getY()), shooter.getProjectiles(), blocks, health, shooter.getDirection().asAngle(), shooter.isFacingLeft());
     }
 
     @Override
@@ -256,11 +280,15 @@ public class Player implements PhysicsObject {
     }
 
     private void drawHealthBar(Graphics2D g2d) {
-        g2d.setStroke(new BasicStroke(1.3f));
+        g2d.setStroke(new BasicStroke(1.8f));
         int healthBarWidth = WIDTH + 5;
         int healthBarHeight = 10;
         var asPoint = position.asPoint();
         int healthBarY = asPoint.y - 22 - healthBarHeight, healthBarX = (asPoint.x + WIDTH / 2) - healthBarWidth / 2;
+        int healthWidth = (int) round(health / MAX_HEALTH * healthBarWidth);
+        g2d.setColor((this instanceof Opponent) ? Color.RED : Color.GREEN);
+        g2d.fillRect(healthBarX, healthBarY, healthWidth, healthBarHeight);
+        g2d.setColor(Color.BLACK);
         g2d.drawRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
     }
 

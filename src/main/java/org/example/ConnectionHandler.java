@@ -3,7 +3,11 @@ package org.example;
 import com.google.gson.*;
 import com.google.gson.annotations.Expose;
 import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
 
+import java.awt.*;
+import java.io.StringReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.WebSocket;
@@ -21,7 +25,7 @@ import static java.net.http.HttpClient.newHttpClient;
 
 public class ConnectionHandler implements Runnable {
     private final Queue<String> sendQueue;
-    public static final Gson GSON = new Gson().newBuilder().excludeFieldsWithoutExposeAnnotation().create();
+    public static final Gson GSON = new Gson().newBuilder().excludeFieldsWithoutExposeAnnotation().setStrictness(Strictness.LENIENT).create();
     private ConnectionStatus connectionStatusMessage = ConnectionStatus.CONNECTING;
     private final List<MessageObserver> observers;
 
@@ -44,49 +48,60 @@ public class ConnectionHandler implements Runnable {
                 var client = newHttpClient();
                 connectionStatusMessage = ConnectionStatus.CONNECTING;
 
-                CompletableFuture<WebSocket> wsFuture = client.newWebSocketBuilder()
-                        .buildAsync(new URI("ws://localhost:8080/connect"), new WebSocket.Listener() {
-                            @Override
-                            public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
-                                try {
-                                    System.out.println(data);
-                                    notifyObservers(fromJson(data));
-                                } catch (Exception e) {
-                                    System.err.println("Error processing message: " + e.getMessage());
-                                } finally {
-                                    webSocket.request(1);
+                CompletableFuture<WebSocket> wsFuture = client.newWebSocketBuilder().buildAsync(new URI("ws://localhost:8080/connect"), new WebSocket.Listener() {
+                    final StringBuilder currentMessage = new StringBuilder();
+
+                    @Override
+                    public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
+                        currentMessage.append(data);
+                        if (last) {
+                            try (var reader = new JsonReader(new StringReader(currentMessage.toString()))) {
+                                reader.setLenient(true);
+                                while (reader.peek() != JsonToken.END_DOCUMENT) {
+                                    JsonElement element = JsonParser.parseReader(reader);
+                                    if (element.isJsonObject()) {
+                                        Map<String, Object> messageMap = GSON.fromJson(element, new TypeToken<Map<String, Object>>() {
+                                        }.getType());
+                                        notifyObservers(messageMap);
+                                    } else {
+                                        System.err.println("Received non-object JSON: " + element);
+                                    }
                                 }
-                                return CompletableFuture.completedFuture(null);
+                            } catch (Exception e) {
+                                System.err.println("Error parsing WebSocket message: " + e.getMessage());
+                            } finally {
+                                currentMessage.setLength(0);
                             }
+                        }
+                        webSocket.request(1);
+                        return CompletableFuture.completedFuture(null);
+                    }
 
+                    @Override
+                    public void onOpen(WebSocket webSocket) {
+                        connectionStatusMessage = ConnectionStatus.SUCCESS;
+                        System.out.println("Connected to server.");
+                        webSocket.request(1);
+                    }
 
-                            @Override
-                            public void onOpen(WebSocket webSocket) {
-                                connectionStatusMessage = ConnectionStatus.SUCCESS;
-                                System.out.println("Connected to server.");
-                                webSocket.request(1);
-                            }
+                    @Override
+                    public void onError(WebSocket webSocket, Throwable error) {
+                        System.err.println("WebSocket error: " + error.getMessage());
+                        reconnect();
+                        connectionStatusMessage = ConnectionStatus.FAILED;
+                    }
 
-                            @Override
-                            public void onError(WebSocket webSocket, Throwable error) {
-                                System.err.println("WebSocket error: " + error.getMessage());
-                                reconnect();
-                                connectionStatusMessage = ConnectionStatus.FAILED;
-                            }
-
-                            @Override
-                            public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
-                                System.out.println("WebSocket closed: " + reason);
-                                connectionStatusMessage = ConnectionStatus.FAILED;
-                                reconnect();
-                                return CompletableFuture.completedFuture(null);
-                            }
-                        });
+                    @Override
+                    public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
+                        System.out.println("WebSocket closed: " + reason);
+                        connectionStatusMessage = ConnectionStatus.FAILED;
+                        reconnect();
+                        return CompletableFuture.completedFuture(null);
+                    }
+                });
 
                 var ws = wsFuture.get();
-                Runtime.getRuntime().addShutdownHook(new Thread(() ->
-                        ws.sendText("{\"request_type\": \"sign-out\"}", true)
-                ));
+                Runtime.getRuntime().addShutdownHook(new Thread(() -> ws.sendText("{\"request_type\": \"sign-out\"}", true)));
                 connected = true;
                 while (!ws.isInputClosed()) {
                     var message = sendQueue.poll();
@@ -114,20 +129,10 @@ public class ConnectionHandler implements Runnable {
 
     private void reconnect() {
         if (Main.getUsername() != null) {
-            sendQueue.add(GSON.toJson(Map.of(
-                    "request_type", "new-player",
-                    "data", Map.of("username", Main.getUsername())
-            )));
+            sendQueue.add(GSON.toJson(Map.of("request_type", "new-player", "data", Map.of("username", Main.getUsername()))));
         }
         run();
     }
-
-    private Map<String, Object> fromJson(CharSequence data) {
-        var type = new TypeToken<Map<String, Object>>() {
-        }.getType();
-        return GSON.fromJson(data.toString(), type);
-    }
-
 
     private void notifyObservers(Map<String, Object> message) {
         for (var observer : observers) {
@@ -147,7 +152,8 @@ public class ConnectionHandler implements Runnable {
         observers.add(observer);
     }
 
-    public record PlayerUpdateInfo(@Expose int x, @Expose int y, @Expose List<Projectile> projectiles, @Expose List<Block> blocks, @Expose double health, @Expose double shooterAngle) {
+    public record PlayerUpdateInfo(@Expose int x, @Expose int y, @Expose List<Projectile> projectiles,
+                                   @Expose List<Block> blocks, @Expose double health, @Expose double shooterAngle, @Expose boolean facingLeft) {
     }
 
     public enum ConnectionStatus {

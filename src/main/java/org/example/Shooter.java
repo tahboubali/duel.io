@@ -33,13 +33,16 @@ public class Shooter implements GameObj {
     }
 
     public void setProjectiles(List<Projectile> projectiles) {
+        this.projectiles.forEach(Projectile::destroy);
         this.projectiles.clear();
         this.projectiles.addAll(projectiles);
+        this.projectiles.forEach(gamePanel::addPhysicsObject);
     }
 
     @Override
     public void update(double dt) {
-        updateDirection();
+        if (!(player instanceof Opponent))
+            updateDirection();
         projectiles.removeIf(Projectile::shouldDespawn);
         projectiles.forEach(projectile -> projectile.update(dt));
     }
@@ -53,6 +56,14 @@ public class Shooter implements GameObj {
         var delta = Vec2.of(mousePosition).sub(gunPos);
         double distance = gunPos.asPoint().distance(mousePosition);
         if (distance != 0) direction = delta.div(distance);
+    }
+
+    public void setFacingLeft(boolean facingLeft) {
+        this.facingLeft = facingLeft;
+    }
+
+    public boolean isFacingLeft() {
+        return facingLeft;
     }
 
     @Override

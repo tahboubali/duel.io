@@ -14,6 +14,7 @@ public class Projectile implements PhysicsObject {
     private final static double WALL_DAMPING = .44, OBJECT_DAMPING = .6;
     @Expose
     private final Vec2 position;
+    @Expose
     private final Vec2 velocity;
     private static final double INIT_SPEED = 1.4;
     public static final int PROJ_WIDTH = 30, PROJ_HEIGHT = 14;
@@ -50,13 +51,13 @@ public class Projectile implements PhysicsObject {
         double centerX = getX() + PROJ_WIDTH / 2d;
         double centerY = getY() + PROJ_HEIGHT / 2d;
         var transform = g2d.getTransform();
-        g2d.setColor(Color.BLUE);
+        g2d.setColor(player != null ? Color.BLUE : Color.RED.brighter());
         g2d.rotate(angle, centerX, centerY);
         g2d.fillRect((int) round(position.getX()), (int) round(position.getY()), PROJ_WIDTH, PROJ_HEIGHT);
         g2d.setColor(Color.GREEN);
         g2d.fillOval((int) centerX - 5, (int) centerY - 5, 10, 10);
         g2d.setTransform(transform);
-        g2d.setColor(Color.RED.brighter());
+        g2d.setColor(player != null ? Color.RED.brighter() : new Color(93, 0, 0));
         g2d.setStroke(new BasicStroke(2));
         g2d.drawPolygon(getCollisionPoly());
     }
@@ -142,8 +143,9 @@ public class Projectile implements PhysicsObject {
                     return;
                 }
             }
+        } else if (obj instanceof Player p && player != p) {
+            destroy();
         }
-
     }
 
     @Override
@@ -158,10 +160,16 @@ public class Projectile implements PhysicsObject {
 
     @Override
     public void setAngle(double angle) {
+        if (player == null) return;
         this.angle = angle;
     }
 
     public Vec2 getVelocity() {
+        if (player == null) return Vec2.zero();
+        return velocity;
+    }
+
+    public Vec2 getDamageVelocity() {
         return velocity;
     }
 

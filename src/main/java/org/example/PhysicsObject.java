@@ -38,6 +38,7 @@ public interface PhysicsObject extends GameObj {
     }
 
     default void bounce(double damping, Wall... walls) {
+        if (getGravityApplier() == null) return;
         stream(walls).forEach(wall -> {
             var velocity = getVelocity();
             var gravityV = getGravityApplier().getGravityVelocity();
