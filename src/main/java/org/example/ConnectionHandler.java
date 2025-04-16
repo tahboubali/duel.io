@@ -6,7 +6,6 @@ import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 
-import java.awt.*;
 import java.io.StringReader;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -47,8 +46,7 @@ public class ConnectionHandler implements Runnable {
             try {
                 var client = newHttpClient();
                 connectionStatusMessage = ConnectionStatus.CONNECTING;
-
-                CompletableFuture<WebSocket> wsFuture = client.newWebSocketBuilder().buildAsync(new URI("ws://localhost:8080/connect"), new WebSocket.Listener() {
+                CompletableFuture<WebSocket> wsFuture = client.newWebSocketBuilder().buildAsync(new URI("ws://54.234.241.106:8080/connect"), new WebSocket.Listener() {
                     final StringBuilder currentMessage = new StringBuilder();
 
                     @Override

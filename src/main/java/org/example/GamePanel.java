@@ -27,11 +27,12 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     private Map<String, Object> prevUpdateInfo;
     private long lastSendUpdate;
     private boolean sentGameEnd;
-    private String headerMessage = "Lobby";
-    private Color headerColor = Color.BLACK;
 
     public GamePanel() {
         setBackground(Color.DARK_GRAY);
+        int prevWidth = SIZE.width;
+        SIZE.width -= 100 * SIZE.width / SIZE.height;
+        SIZE.height -= 100 * prevWidth / SIZE.height;
         setPreferredSize(SIZE);
         addKeyListener(KeyHandler.getInstance());
         addMouseListener(MouseHandler.getInstance());
@@ -139,6 +140,18 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         var previousFont = g2d.getFont();
         g2d.setFont(new Font(previousFont.getFontName(), previousFont.getStyle(), 40));
         var metrics = g2d.getFontMetrics();
+        String headerMessage;
+        Color headerColor;
+        if (matchmaking) {
+            headerColor = new Color(6, 122, 30);
+            headerMessage = "Matchmaking...";
+        } else if (dueling) {
+            headerColor = Color.RED;
+            headerMessage = "Dueling \"" + opponent.getName() + "\"!";
+        } else {
+            headerMessage = "Enter a duel!";
+            headerColor = Color.BLACK;
+        }
         int width = metrics.stringWidth(headerMessage);
         g2d.setColor(headerColor);
         g2d.drawString(headerMessage, getWidth() / 2 - width / 2, 100);
@@ -160,8 +173,6 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
             case "enter-duel" -> {
                 var status = ((Number) message.get("status")).intValue();
                 if (status == 0) {
-                    headerColor = new Color(6, 122, 30);
-                    headerMessage = "Matchmaking...";
                     matchmaking = true;
                     dueling = false;
                 } else {
@@ -177,8 +188,6 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
                 opponent.destroy();
                 opponent = null;
                 player.resetHealth();
-                headerMessage = "Lobby";
-                headerColor = Color.BLACK;
             }
         }
     }
@@ -189,8 +198,6 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         opponent = new Opponent(this, (String) ((Map<?, ?>) message.get("match")).get("username"));
         connectionHandler.addObserver(opponent);
         opponent.startDuel(position.equals("left") ? "right" : "left");
-        headerColor = Color.RED;
-        headerMessage = "Dueling \"" + opponent.getName() + "\"!";
     }
 
     public void createSidePanel() {

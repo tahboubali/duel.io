@@ -1,6 +1,8 @@
 package org.example;
 
 
+import javax.swing.*;
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -49,7 +51,8 @@ public class PhysicsHandler {
     }
 
     private void handleWallCollisions() {
-        var bounds = gamePanel.getBounds();
+        var bounds = new Rectangle(gamePanel.getSize());
+
         appliers.forEach(applier -> {
             var object = applier.getObject();
             var box = object.getCollisionPoly();
@@ -60,12 +63,12 @@ public class PhysicsHandler {
             if (!bounds.contains(bBounds)) {
                 var walls = new ArrayList<Wall>();
                 int leftX = stream(box.xpoints).min().orElseThrow(), upY = stream(box.ypoints).min().orElseThrow(), rightX = stream(box.xpoints).max().orElseThrow(), downY = stream(box.ypoints).max().orElseThrow();
-                if (upY <= 0) {
+                if (upY <= bounds.y) {
                     object.setY(distY + 1);
                     if (!(object instanceof Player)) walls.add(UP);
                 }
 
-                if (leftX <= 0) {
+                if (leftX <= bounds.y) {
                     object.setX(distX + 1);
                     walls.add(LEFT);
                 }
