@@ -20,8 +20,9 @@ public class Opponent extends Player implements ConnectionHandler.MessageObserve
 
     @Override
     public void handleMessage(Map<String, Object> message) {
-        if (message.get("request_type").equals("game-state")) {
-            var data = (Map<?, ?>) message.get("data");
+        var requestType = message.get("request_type");
+        var data = (Map<?, ?>) message.get("data");
+        if (requestType.equals("game-state")) {
             var updateInfo = GSON.fromJson(GSON.toJson(data), PlayerUpdateInfo.class);
             if (data.containsKey("x")) {
                 setX(updateInfo.x());
@@ -31,15 +32,9 @@ public class Opponent extends Player implements ConnectionHandler.MessageObserve
             }
             if (data.containsKey("blocks")) {
                 setBlocks(updateInfo.blocks());
-                for (var block : getBlocks()) {
-                    block.setGravityApplier(null);
-                }
             }
             if (data.containsKey("projectiles")) {
                 setProjectiles(updateInfo.projectiles());
-                for (var projectile : getProjectiles()) {
-                    projectile.setGravityApplier(null);
-                }
             }
             if (data.containsKey("health")) {
                 setHealth(updateInfo.health());
@@ -50,6 +45,9 @@ public class Opponent extends Player implements ConnectionHandler.MessageObserve
             if (data.containsKey("facingLeft")) {
                 setFacingLeft(updateInfo.facingLeft());
             }
+        } else if (requestType.equals("health-update")) {
+            double delta = (Double) data.get("delta");
+            Main.getGamePanel().changePlayerHealth(delta);
         }
     }
 

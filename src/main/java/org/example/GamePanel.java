@@ -159,8 +159,6 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         g2d.setColor(Color.WHITE);
         g2d.setFont(previousFont);
         g2d.drawString("FPS: " + currFPS, 30, 50);
-        if (physicsHandler != null)
-            g2d.drawString("Appliers: " + physicsHandler.getAppliers(), 30, 70);
         if (player != null) player.draw(g2d);
         if (opponent != null) opponent.draw(g2d);
         if (Arrays.stream(getComponents()).toList().contains(titleScreen)) titleScreen.repaint();
@@ -215,5 +213,18 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         getParent().add(sidePanel, JLayeredPane.PALETTE_LAYER);
         addKeyListener(KeyHandler.getInstance());
         setFocusable(true);
+    }
+
+    public void changePlayerHealth(double delta) {
+        player.setHealth(player.getHealth() + delta);
+    }
+
+    public void sendHealthDelta(double delta) {
+        connectionHandler.sendMessage(Map.of(
+                "request_type", "health-update",
+                "data", Map.of(
+                        "delta", delta
+                )
+        ));
     }
 }
