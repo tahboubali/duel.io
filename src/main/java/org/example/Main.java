@@ -19,7 +19,6 @@ public class Main {
         Main.window = window;
         window.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         window.setSize(Toolkit.getDefaultToolkit().getScreenSize());
-        window.setUndecorated(true);
         window.setBackground(new Color(19, 19, 19));
         var layeredPane = new JLayeredPane();
         layeredPane.setPreferredSize(window.getSize());

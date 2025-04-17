@@ -1,6 +1,7 @@
 package org.example;
 
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.Map;
 
 import static org.example.ConnectionHandler.*;
@@ -73,7 +74,14 @@ public class Opponent extends Player implements ConnectionHandler.MessageObserve
     }
 
     public void destroy() {
+        setBlocks(new ArrayList<>());
+        setProjectiles(new ArrayList<>());
         destroy = true;
+    }
+
+    @Override
+    public boolean observing() {
+        return !destroy;
     }
 }
 

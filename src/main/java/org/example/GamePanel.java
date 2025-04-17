@@ -4,6 +4,7 @@ import com.google.gson.reflect.TypeToken;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -104,7 +105,7 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         if (opponent != null) opponent.update(dt);
         if (dueling && System.currentTimeMillis() - lastSendUpdate >= 20)
             sendPlayerUpdate();
-        if (player.getHealth() <= 0 && !sentGameEnd) {
+        if (player.getHealth() <= 0 && !sentGameEnd && opponent != null) {
             connectionHandler.sendMessage(Map.of(
                     "request_type", "game-end",
                     "data", Map.of(
@@ -145,7 +146,7 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         if (matchmaking) {
             headerColor = new Color(6, 122, 30);
             headerMessage = "Matchmaking...";
-        } else if (dueling) {
+        } else if (dueling && opponent != null) {
             headerColor = Color.RED;
             headerMessage = "Dueling \"" + opponent.getName() + "\"!";
         } else {
@@ -158,6 +159,8 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         g2d.setColor(Color.WHITE);
         g2d.setFont(previousFont);
         g2d.drawString("FPS: " + currFPS, 30, 50);
+        if (physicsHandler != null)
+            g2d.drawString("Appliers: " + physicsHandler.getAppliers(), 30, 70);
         if (player != null) player.draw(g2d);
         if (opponent != null) opponent.draw(g2d);
         if (Arrays.stream(getComponents()).toList().contains(titleScreen)) titleScreen.repaint();
@@ -188,6 +191,10 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
                 opponent.destroy();
                 opponent = null;
                 player.resetHealth();
+                player.setProjectiles(new ArrayList<>());
+                player.setBlocks(new ArrayList<>());
+                physicsHandler.reset();
+                addPhysicsObject(player);
             }
         }
     }

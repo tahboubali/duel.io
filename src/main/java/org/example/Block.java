@@ -4,6 +4,7 @@ import com.google.gson.annotations.Expose;
 
 import java.awt.*;
 import java.time.Duration;
+import java.util.UUID;
 
 import static java.lang.Math.*;
 import static java.lang.System.currentTimeMillis;
@@ -26,6 +27,8 @@ public class Block implements PhysicsObject {
     private double health;
     private final GamePanel gamePanel;
     private boolean destroy;
+    @Expose
+    private String id;
 
     public Block(double x, double y, Color color, Player player, GamePanel gamePanel) {
         this.color = color;
@@ -35,9 +38,11 @@ public class Block implements PhysicsObject {
         this.player = player;
         health = MAX_HEALTH;
         this.gamePanel = gamePanel;
+        this.id = UUID.randomUUID().toString();
     }
 
     // used for Json serialization/deserialization
+    @SuppressWarnings("unused")
     public Block() {
         createdMillis = currentTimeMillis();
         velocity = Vec2.zero();
@@ -177,5 +182,17 @@ public class Block implements PhysicsObject {
 
     public Player getPlayer() {
         return player;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setHealth(double health) {
+        this.health = health;
+    }
+
+    public double getHealth() {
+        return health;
     }
 }

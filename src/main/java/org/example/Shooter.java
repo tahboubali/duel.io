@@ -1,7 +1,6 @@
 package org.example;
 
 import java.awt.*;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -27,16 +26,16 @@ public class Shooter implements GameObj {
     }
 
     public void shoot() {
-        var bullet = new Projectile(gamePanel, getX(), getY(), direction, player);
+        var bullet = new Projectile(getX(), getY(), direction, player);
         projectiles.add(bullet);
         gamePanel.addPhysicsObject(bullet);
     }
 
-    public void setProjectiles(List<Projectile> projectiles) {
-        this.projectiles.forEach(Projectile::destroy);
-        this.projectiles.clear();
-        this.projectiles.addAll(projectiles);
-        this.projectiles.forEach(gamePanel::addPhysicsObject);
+    public void setProjectiles(List<Projectile> updateProjectiles) {
+        projectiles.forEach(Projectile::destroy);
+        projectiles.clear();
+        projectiles.addAll(updateProjectiles);
+        updateProjectiles.forEach(gamePanel::addPhysicsObject);
     }
 
     @Override

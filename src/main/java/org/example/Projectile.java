@@ -5,6 +5,7 @@ import com.google.gson.annotations.Expose;
 import java.awt.*;
 import java.awt.geom.Line2D;
 import java.util.HashSet;
+import java.util.UUID;
 
 import static java.lang.Math.*;
 import static org.example.PolyUtils.*;
@@ -13,22 +14,23 @@ import static org.example.Wall.*;
 public class Projectile implements PhysicsObject {
     private final static double WALL_DAMPING = .44, OBJECT_DAMPING = .6;
     @Expose
-    private final Vec2 position;
+    private Vec2 position;
     @Expose
-    private final Vec2 velocity;
+    private Vec2 velocity;
     private static final double INIT_SPEED = 1.4;
     public static final int PROJ_WIDTH = 30, PROJ_HEIGHT = 14;
     @Expose
     private double angle;
-    private final GamePanel gamePanel;
     private static final int DESPAWN_TIME = 1000;
     private long timeSettled;
     private PhysicsHandler.GravityApplier gravityApplier;
     private long lastCollision;
     private final Player player;
     private boolean destroy;
+    @Expose
+    private String id;
 
-    public Projectile(GamePanel gamePanel, double x, double y, Vec2 direction, Player player) {
+    public Projectile(double x, double y, Vec2 direction, Player player) {
         int range = 10;
         int min = -5;
         var recoil = (Math.random() * range + 1) + min;
@@ -36,8 +38,13 @@ public class Projectile implements PhysicsObject {
         this.angle = toRadians(toDegrees(direction.asAngle()) + recoil);
         this.velocity.set(cos(angle), sin(angle));
         this.position = Vec2.of(x, y);
-        this.gamePanel = gamePanel;
         this.player = player;
+        id = UUID.randomUUID().toString();
+    }
+
+    @SuppressWarnings("unused")
+    public Projectile() {
+        player = null;
     }
 
     @Override
@@ -209,5 +216,9 @@ public class Projectile implements PhysicsObject {
 
     public void destroy() {
         destroy = true;
+    }
+
+    public String getId() {
+        return id;
     }
 }

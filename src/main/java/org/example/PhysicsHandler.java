@@ -148,6 +148,14 @@ public class PhysicsHandler {
         return appliers.stream().map(GravityApplier::getObject).toList();
     }
 
+    public List<GravityApplier> getAppliers() {
+        return appliers;
+    }
+
+    public void reset() {
+        this.appliers.clear();
+    }
+
     public void trackObject(PhysicsObject object) {
         var applier = new GravityApplier(object);
         appliers.add(applier);

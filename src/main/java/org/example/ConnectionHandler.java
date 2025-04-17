@@ -46,7 +46,7 @@ public class ConnectionHandler implements Runnable {
             try {
                 var client = newHttpClient();
                 connectionStatusMessage = ConnectionStatus.CONNECTING;
-                CompletableFuture<WebSocket> wsFuture = client.newWebSocketBuilder().buildAsync(new URI("ws://54.234.241.106:8080/connect"), new WebSocket.Listener() {
+                CompletableFuture<WebSocket> wsFuture = client.newWebSocketBuilder().buildAsync(new URI("ws://100.24.36.200:8080/connect"), new WebSocket.Listener() {
                     final StringBuilder currentMessage = new StringBuilder();
 
                     @Override
@@ -60,6 +60,7 @@ public class ConnectionHandler implements Runnable {
                                     if (element.isJsonObject()) {
                                         Map<String, Object> messageMap = GSON.fromJson(element, new TypeToken<Map<String, Object>>() {
                                         }.getType());
+                                        observers.removeIf(observer -> !observer.observing());
                                         notifyObservers(messageMap);
                                     } else {
                                         System.err.println("Received non-object JSON: " + element);
@@ -168,5 +169,9 @@ public class ConnectionHandler implements Runnable {
 
     public interface MessageObserver {
         void handleMessage(Map<String, Object> message);
+
+        default boolean observing() {
+            return true;
+        }
     }
 }

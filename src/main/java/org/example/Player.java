@@ -133,13 +133,11 @@ public class Player implements PhysicsObject {
         return Color.BLUE;
     }
 
-    protected void setBlocks(List<Block> blocks) {
-        synchronized (this.blocks) {
-            this.blocks.forEach(Block::destroy);
-            this.blocks.clear();
-            this.blocks.addAll(blocks);
-            this.blocks.forEach(gamePanel::addPhysicsObject);
-        }
+    protected void setBlocks(List<Block> updateBlocks) {
+        blocks.forEach(Block::destroy);
+        blocks.clear();
+        blocks.addAll(updateBlocks);
+        updateBlocks.forEach(gamePanel::addPhysicsObject);
     }
 
     protected void setProjectiles(List<Projectile> projectiles) {
