@@ -217,7 +217,7 @@ public class Player implements PhysicsObject {
             if (gravityApplier != null)
                 gravityApplier.getGravityVelocity().setY(0);
         }
-        if (obj instanceof Projectile projectile && this instanceof Opponent && projectile.getPlayer() != this) {
+        if (obj instanceof Projectile projectile && this instanceof Opponent && projectile.getPlayer() != this && projectile.getPlayer() != null) {
             gamePanel.sendHealthDelta(-HEALTH_DECREMENT * projectile.getDamageVelocity().magnitude());
         }
     }
