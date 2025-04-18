@@ -15,13 +15,13 @@ public class KeyHandler extends KeyAdapter {
     @Override
     public void keyPressed(KeyEvent e) {
         setDirections(e.getKeyCode(), true);
-        if (e.getKeyCode() == KeyEvent.VK_SPACE) space = true;
+        if (e.getKeyCode() == KeyEvent.VK_SPACE || e.getKeyCode() == KeyEvent.VK_UP || e.getKeyCode() == KeyEvent.VK_W) space = true;
     }
 
     @Override
     public void keyReleased(KeyEvent e) {
         setDirections(e.getKeyCode(), false);
-        if (e.getKeyCode() == KeyEvent.VK_SPACE) space = false;
+        if (e.getKeyCode() == KeyEvent.VK_SPACE || e.getKeyCode() == KeyEvent.VK_UP || e.getKeyCode() == KeyEvent.VK_W) space = false;
         if (e.getKeyCode() == KeyEvent.VK_H) hide = !hide;
     }
 
