@@ -22,7 +22,7 @@ public class Main {
         JLayeredPane layeredPane = new JLayeredPane();
         layeredPane.setPreferredSize(window.getSize());
         GamePanel game = new GamePanel();
-        int desiredWidth = 1775;
+        int desiredWidth = 1300;
         int desiredHeight = (int) Math.round(0.5625 * desiredWidth);
         game.setSize(new Dimension(Math.min(windowSize.width, windowSize.width - (windowSize.width - desiredWidth)), Math.min(windowSize.height, windowSize.height - (windowSize.height - desiredHeight))));
         game.setLocation(windowSize.width / 2 - game.getWidth() / 2, windowSize.height / 2 - game.getHeight() / 2 - 30 / 2);
