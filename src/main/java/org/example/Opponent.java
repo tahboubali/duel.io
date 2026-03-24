@@ -4,7 +4,7 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.Map;
 
-import static org.example.ConnectionHandler.*;
+import static org.example.ConnectionHandler.GSON;
 
 public class Opponent extends Player implements ConnectionHandler.MessageObserver {
     private boolean destroy;
@@ -20,10 +20,10 @@ public class Opponent extends Player implements ConnectionHandler.MessageObserve
 
     @Override
     public void handleMessage(Map<String, Object> message) {
-        var requestType = message.get("request_type");
-        var data = (Map<?, ?>) message.get("data");
-        if (requestType.equals("game-state")) {
-            var updateInfo = GSON.fromJson(GSON.toJson(data), PlayerUpdateInfo.class);
+        Object requestType = message.get("request_type");
+        Map<?, ?> data = (Map<?, ?>) message.get("data");
+        if ("game-state".equals(requestType)) {
+            ConnectionHandler.PlayerUpdateInfo updateInfo = GSON.fromJson(GSON.toJson(data), ConnectionHandler.PlayerUpdateInfo.class);
             if (data.containsKey("x")) {
                 setX(updateInfo.x());
             }
@@ -45,8 +45,8 @@ public class Opponent extends Player implements ConnectionHandler.MessageObserve
             if (data.containsKey("facingLeft")) {
                 setFacingLeft(updateInfo.facingLeft());
             }
-        } else if (requestType.equals("health-update")) {
-            double delta = (Double) data.get("delta");
+        } else if ("health-update".equals(requestType)) {
+            double delta = ((Number) data.get("delta")).doubleValue();
             Main.getGamePanel().changePlayerHealth(delta);
         }
     }
@@ -72,8 +72,8 @@ public class Opponent extends Player implements ConnectionHandler.MessageObserve
     }
 
     public void destroy() {
-        setBlocks(new ArrayList<>());
-        setProjectiles(new ArrayList<>());
+        setBlocks(new ArrayList<Block>());
+        setProjectiles(new ArrayList<Projectile>());
         destroy = true;
     }
 
@@ -82,4 +82,3 @@ public class Opponent extends Player implements ConnectionHandler.MessageObserve
         return !destroy;
     }
 }
-

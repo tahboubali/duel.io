@@ -7,31 +7,36 @@ import java.awt.geom.PathIterator;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 
+import static java.lang.Math.cos;
 import static java.lang.Math.round;
+import static java.lang.Math.sin;
 import static java.util.Arrays.stream;
-import static java.lang.Math.*;
 
 public class PolyUtils {
     public static boolean intersects(Polygon first, Polygon second) {
-        if (!first.getBounds().intersects(second.getBounds()))
+        if (!first.getBounds().intersects(second.getBounds())) {
             return false;
-        for (int i = 0; i < first.npoints; i++)
+        }
+        for (int i = 0; i < first.npoints; i++) {
             if (second.contains(first.xpoints[i], first.ypoints[i])) {
                 return true;
             }
-        for (int i = 0; i < second.npoints; i++)
-            if (first.contains(second.xpoints[i], second.ypoints[i]))
+        }
+        for (int i = 0; i < second.npoints; i++) {
+            if (first.contains(second.xpoints[i], second.ypoints[i])) {
                 return true;
+            }
+        }
 
         return true;
     }
 
     public static int getHeight(Polygon poly) {
-        return stream(poly.ypoints).max().orElseThrow() - stream(poly.ypoints).min().orElseThrow();
+        return stream(poly.ypoints).max().getAsInt() - stream(poly.ypoints).min().getAsInt();
     }
 
     public static int getWidth(Polygon poly) {
-        return stream(poly.xpoints).max().orElseThrow() - stream(poly.xpoints).min().orElseThrow();
+        return stream(poly.xpoints).max().getAsInt() - stream(poly.xpoints).min().getAsInt();
     }
 
     public static Polygon from(Rectangle rect) {
@@ -39,8 +44,8 @@ public class PolyUtils {
     }
 
     private static Polygon from(Area area) {
-        var poly = new Polygon();
-        var pathIterator = area.getPathIterator(null);
+        Polygon poly = new Polygon();
+        PathIterator pathIterator = area.getPathIterator(null);
         double[] coords = new double[6];
 
         while (!pathIterator.isDone()) {
@@ -59,11 +64,12 @@ public class PolyUtils {
     }
 
     public static Polygon rotate(Polygon poly, double theta) {
-        var center = getCenter(poly);
+        Point center = getCenter(poly);
 
         poly = new Polygon(poly.xpoints, poly.ypoints, poly.npoints);
         for (int i = 0; i < poly.npoints; i++) {
-            int x = poly.xpoints[i], y = poly.ypoints[i];
+            int x = poly.xpoints[i];
+            int y = poly.ypoints[i];
             poly.xpoints[i] = (int) round((x - center.x) * cos(theta) - (y - center.y) * sin(theta) + center.x);
             poly.ypoints[i] = (int) round((x - center.x) * sin(theta) + (y - center.y) * cos(theta) + center.y);
         }
@@ -76,7 +82,7 @@ public class PolyUtils {
     }
 
     public static Point getCenter(Polygon poly) {
-        var bounds = poly.getBounds();
+        Rectangle bounds = poly.getBounds();
         return roundedPoint(bounds.getCenterX(), bounds.getCenterY());
     }
 
@@ -85,7 +91,7 @@ public class PolyUtils {
     }
 
     public static Point[] getCorners(Polygon poly) {
-        var corners = new ArrayList<Point>();
+        ArrayList<Point> corners = new ArrayList<Point>();
         for (int i = 0; i < poly.npoints; ++i) {
             corners.add(new Point(poly.xpoints[i], poly.ypoints[i]));
         }
@@ -93,20 +99,23 @@ public class PolyUtils {
     }
 
     public static Line2D[] getLines(Polygon poly) {
-        var lines = new ArrayList<Line2D.Double>();
+        ArrayList<Line2D.Double> lines = new ArrayList<Line2D.Double>();
         for (int i = 1; i < poly.npoints; i++) {
-            lines.add(new Line2D.Double(new Point2D.Double(poly.xpoints[i - 1], poly.ypoints[i - 1]),
-                    new Point2D.Double(poly.xpoints[i], poly.ypoints[i])));
+            lines.add(new Line2D.Double(
+                    new Point2D.Double(poly.xpoints[i - 1], poly.ypoints[i - 1]),
+                    new Point2D.Double(poly.xpoints[i], poly.ypoints[i])
+            ));
         }
-        lines.add(new Line2D.Double(new Point2D.Double(poly.xpoints[poly.npoints - 1], poly.ypoints[poly.npoints - 1]),
-                new Point2D.Double(poly.xpoints[0], poly.ypoints[0])));
+        lines.add(new Line2D.Double(
+                new Point2D.Double(poly.xpoints[poly.npoints - 1], poly.ypoints[poly.npoints - 1]),
+                new Point2D.Double(poly.xpoints[0], poly.ypoints[0])
+        ));
         return lines.toArray(new Line2D[0]);
-
     }
 
     public static Polygon intersection(Polygon first, Polygon second) {
-        var firstArea = new Area(first);
-        var secondArea = new Area(second);
+        Area firstArea = new Area(first);
+        Area secondArea = new Area(second);
         firstArea.intersect(secondArea);
         return from(firstArea);
     }

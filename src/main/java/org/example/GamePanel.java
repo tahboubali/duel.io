@@ -9,7 +9,6 @@ import java.util.Arrays;
 import java.util.Map;
 
 import static java.lang.Thread.sleep;
-import static java.lang.Thread.startVirtualThread;
 import static org.example.ConnectionHandler.GSON;
 import static org.example.ConnectionHandler.MessageObserver;
 
@@ -41,7 +40,8 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         requestFocusInWindow();
         this.connectionHandler = new ConnectionHandler();
         connectionHandler.addObserver(this);
-        startVirtualThread(connectionHandler);
+        Thread connectionThread = new Thread(connectionHandler, "connection-handler");
+        connectionThread.start();
         titleScreen = new TitleScreen(connectionHandler);
         add(titleScreen, BorderLayout.CENTER);
         this.physicsHandler = new PhysicsHandler(this);
@@ -53,9 +53,9 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     }
 
     private void setPlayer() {
-        var input = titleScreen.getInput();
-        var username = input.get("username");
-        var player = new Player(this, username);
+        Map<String, String> input = titleScreen.getInput();
+        String username = input.get("username");
+        Player player = new Player(this, username);
         this.player = player;
         addPhysicsObject(player);
         Main.setUsername(username);
@@ -64,7 +64,7 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
 
     public void run() {
         setPlayer();
-        double drawInterval = 1_000_000_000. / (TARGET_FPS);
+        double drawInterval = 1_000_000_000. / TARGET_FPS;
         double nextDrawTime = System.nanoTime() + drawInterval;
         double last = System.currentTimeMillis();
         if (running) throw new IllegalStateException("Game is already running.");
@@ -102,13 +102,16 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     private void update(double dt) {
         player.update(dt);
         physicsHandler.update(dt);
-        if (opponent != null) opponent.update(dt);
-        if (dueling && System.currentTimeMillis() - lastSendUpdate >= 20)
+        if (opponent != null) {
+            opponent.update(dt);
+        }
+        if (dueling && System.currentTimeMillis() - lastSendUpdate >= 20) {
             sendPlayerUpdate();
+        }
         if (player.getHealth() <= 0 && !sentGameEnd && opponent != null) {
-            connectionHandler.sendMessage(Map.of(
+            connectionHandler.sendMessage(Maps.of(
                     "request_type", "game-end",
-                    "data", Map.of(
+                    "data", Maps.of(
                             "player_won", opponent.getName()
                     )
             ));
@@ -122,12 +125,12 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         if (prevUpdateInfo == null) {
             prevUpdateInfo = updateInfo;
         } else {
-            if (updateInfo.equals(prevUpdateInfo)) return;
-            updateInfo.keySet().removeIf(key ->
-                    updateInfo.get(key).equals(prevUpdateInfo.getOrDefault(key, null))
-            );
+            if (updateInfo.equals(prevUpdateInfo)) {
+                return;
+            }
+            updateInfo.keySet().removeIf(key -> updateInfo.get(key).equals(prevUpdateInfo.getOrDefault(key, null)));
         }
-        connectionHandler.sendMessage(Map.of(
+        connectionHandler.sendMessage(Maps.of(
                 "request_type", "game-state",
                 "data", updateInfo
         ));
@@ -137,10 +140,10 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
 
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        var g2d = (Graphics2D) g;
-        var previousFont = g2d.getFont();
+        Graphics2D g2d = (Graphics2D) g;
+        Font previousFont = g2d.getFont();
         g2d.setFont(new Font(previousFont.getFontName(), previousFont.getStyle(), 40));
-        var metrics = g2d.getFontMetrics();
+        FontMetrics metrics = g2d.getFontMetrics();
         String headerMessage;
         Color headerColor;
         if (matchmaking) {
@@ -159,9 +162,15 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         g2d.setColor(Color.WHITE);
         g2d.setFont(previousFont);
         g2d.drawString("FPS: " + currFPS, 30, 50);
-        if (player != null) player.draw(g2d);
-        if (opponent != null) opponent.draw(g2d);
-        if (Arrays.stream(getComponents()).toList().contains(titleScreen)) titleScreen.repaint();
+        if (player != null) {
+            player.draw(g2d);
+        }
+        if (opponent != null) {
+            opponent.draw(g2d);
+        }
+        if (Arrays.asList(getComponents()).contains(titleScreen)) {
+            titleScreen.repaint();
+        }
         g.dispose();
     }
 
@@ -170,35 +179,33 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     }
 
     public void handleMessage(Map<String, Object> message) {
-        switch ((String) message.get("request_type")) {
-            case "enter-duel" -> {
-                var status = ((Number) message.get("status")).intValue();
-                if (status == 0) {
-                    matchmaking = true;
-                    dueling = false;
-                } else {
-                    sentGameEnd = false;
-                    dueling = true;
-                    matchmaking = false;
-                    enterDuel(message);
-                }
-            }
-            case "game-end" -> {
-                matchmaking = false;
+        String requestType = (String) message.get("request_type");
+        if ("enter-duel".equals(requestType)) {
+            int status = ((Number) message.get("status")).intValue();
+            if (status == 0) {
+                matchmaking = true;
                 dueling = false;
-                opponent.destroy();
-                opponent = null;
-                player.resetHealth();
-                player.setProjectiles(new ArrayList<>());
-                player.setBlocks(new ArrayList<>());
-                physicsHandler.reset();
-                addPhysicsObject(player);
+            } else {
+                sentGameEnd = false;
+                dueling = true;
+                matchmaking = false;
+                enterDuel(message);
             }
+        } else if ("game-end".equals(requestType)) {
+            matchmaking = false;
+            dueling = false;
+            opponent.destroy();
+            opponent = null;
+            player.resetHealth();
+            player.setProjectiles(new ArrayList<Projectile>());
+            player.setBlocks(new ArrayList<Block>());
+            physicsHandler.reset();
+            addPhysicsObject(player);
         }
     }
 
     private void enterDuel(Map<String, Object> message) {
-        var position = (String) message.get("position");
+        String position = (String) message.get("position");
         player.startDuel(position);
         opponent = new Opponent(this, (String) ((Map<?, ?>) message.get("match")).get("username"));
         connectionHandler.addObserver(opponent);
@@ -206,7 +213,7 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     }
 
     public void createSidePanel() {
-        var sidePanel = new SidePanel(connectionHandler);
+        SidePanel sidePanel = new SidePanel(connectionHandler);
         sidePanel.setSize(200, 700);
         sidePanel.setBackground(new Color(0, 0, 0, 150));
         sidePanel.setLocation((int) Toolkit.getDefaultToolkit().getScreenSize().getWidth() - 10 - sidePanel.getWidth(), 10);
@@ -220,9 +227,9 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     }
 
     public void sendHealthDelta(double delta) {
-        connectionHandler.sendMessage(Map.of(
+        connectionHandler.sendMessage(Maps.of(
                 "request_type", "health-update",
-                "data", Map.of(
+                "data", Maps.of(
                         "delta", delta
                 )
         ));

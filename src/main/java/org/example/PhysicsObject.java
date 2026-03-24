@@ -38,17 +38,25 @@ public interface PhysicsObject extends GameObj {
     }
 
     default void bounce(double damping, Wall... walls) {
-        if (getGravityApplier() == null) return;
+        if (getGravityApplier() == null) {
+            return;
+        }
         stream(walls).forEach(wall -> {
-            var velocity = getVelocity();
-            var gravityV = getGravityApplier().getGravityVelocity();
-            var prev = getGravityApplier().getPrevVelocity();
+            Vec2 velocity = getVelocity();
+            Vec2 gravityV = getGravityApplier().getGravityVelocity();
+            Vec2 prev = getGravityApplier().getPrevVelocity();
             switch (wall) {
-                case UP, DOWN -> {
+                case UP:
+                case DOWN:
                     velocity.set(velocity.mul(Vec2.of(damping, -(damping - .1))));
                     gravityV.set(prev.mul(Vec2.of(damping, -(damping - .05))));
-                }
-                case LEFT, RIGHT -> velocity.set(velocity.mul(Vec2.of(-(damping - .1), damping)));
+                    break;
+                case LEFT:
+                case RIGHT:
+                    velocity.set(velocity.mul(Vec2.of(-(damping - .1), damping)));
+                    break;
+                default:
+                    throw new IllegalStateException("Unhandled wall: " + wall);
             }
         });
     }

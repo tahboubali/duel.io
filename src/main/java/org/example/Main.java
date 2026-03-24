@@ -3,8 +3,6 @@ package org.example;
 import javax.swing.*;
 import java.awt.*;
 
-import static java.lang.Thread.startVirtualThread;
-
 public class Main {
     private static String username;
     private static GamePanel gamePanel;
@@ -15,15 +13,15 @@ public class Main {
     }
 
     private static void run() {
-        var window = new JFrame();
+        JFrame window = new JFrame();
         Main.window = window;
         window.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        var windowSize = Toolkit.getDefaultToolkit().getScreenSize();
+        Dimension windowSize = Toolkit.getDefaultToolkit().getScreenSize();
         window.setSize(windowSize);
         window.setBackground(new Color(19, 19, 19));
-        var layeredPane = new JLayeredPane();
+        JLayeredPane layeredPane = new JLayeredPane();
         layeredPane.setPreferredSize(window.getSize());
-        var game = new GamePanel();
+        GamePanel game = new GamePanel();
         int desiredWidth = 1775;
         int desiredHeight = (int) Math.round(0.5625 * desiredWidth);
         game.setSize(new Dimension(Math.min(windowSize.width, windowSize.width - (windowSize.width - desiredWidth)), Math.min(windowSize.height, windowSize.height - (windowSize.height - desiredHeight))));
@@ -35,7 +33,8 @@ public class Main {
         window.setLocationRelativeTo(null);
         window.setVisible(true);
         setGamePanel(game);
-        startVirtualThread(game);
+        Thread gameThread = new Thread(game, "game-loop");
+        gameThread.start();
     }
 
 

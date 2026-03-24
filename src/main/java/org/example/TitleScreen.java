@@ -20,9 +20,9 @@ public class TitleScreen extends JPanel implements ConnectionHandler.MessageObse
         int HEIGHT = 800;
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
         setLayout(null);
-        var label = new JLabel("Enter a username");
+        JLabel label = new JLabel("Enter a username");
         label.setFont(new Font(getFont().getFontName(), getFont().getStyle(), 25));
-        var bounds = getFontMetrics(label.getFont()).getStringBounds("Enter a username:", getGraphics());
+        Rectangle bounds = getFontMetrics(label.getFont()).getStringBounds("Enter a username:", getGraphics()).getBounds();
         label.setBounds(WIDTH / 2 - (int) bounds.getWidth() / 2, 300, (int) bounds.getWidth(), (int) bounds.getHeight());
         add(label);
         text = new JTextField();
@@ -31,17 +31,18 @@ public class TitleScreen extends JPanel implements ConnectionHandler.MessageObse
         text.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ENTER)
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
                     submit();
+                }
             }
         });
         add(text);
-        var submitBtn = new JButton("PLAY!");
-        var btnBounds = new Rectangle(label.getX(), text.getY() + 90, (int) bounds.getWidth(), (int) bounds.getWidth());
+        JButton submitBtn = new JButton("PLAY!");
+        Rectangle btnBounds = new Rectangle(label.getX(), text.getY() + 90, (int) bounds.getWidth(), (int) bounds.getWidth());
         btnBounds.grow(20, 20);
         submitBtn.setBounds(btnBounds);
         submitBtn.setFont(new Font(getFont().getFontName(), getFont().getStyle(), 48));
-        submitBtn.addActionListener(_ -> submit());
+        submitBtn.addActionListener(e -> submit());
         submitBtn.setFocusable(true);
         add(submitBtn);
         this.connectionHandler = connectionHandler;
@@ -49,16 +50,17 @@ public class TitleScreen extends JPanel implements ConnectionHandler.MessageObse
     }
 
     private void submit() {
-        if (!text.getText().isBlank())
+        if (!text.getText().trim().isEmpty()) {
             setUsername(text.getText());
+        }
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         g.setFont(new Font(getFont().getFontName(), Font.ITALIC, 50));
-        var titleString = "duel.io";
-        var bounds = g.getFontMetrics().getStringBounds(titleString, g);
-        var width = (int) bounds.getWidth();
+        String titleString = "duel.io";
+        Rectangle bounds = g.getFontMetrics().getStringBounds(titleString, g).getBounds();
+        int width = (int) bounds.getWidth();
         g.drawString(titleString, WIDTH / 2 - width / 2, 230);
     }
 
@@ -67,8 +69,8 @@ public class TitleScreen extends JPanel implements ConnectionHandler.MessageObse
     }
 
     public Map<String, String> getInput() {
-        final var POLL_RATE = Duration.ofMillis(100);
-        var returnUsername = (String) null;
+        final Duration pollRate = Duration.ofMillis(100);
+        String returnUsername = null;
         while (!registered) {
             if (username != null) {
                 if (connectionHandler.getConnectionStatus() != ConnectionHandler.ConnectionStatus.SUCCESS) {
@@ -80,20 +82,21 @@ public class TitleScreen extends JPanel implements ConnectionHandler.MessageObse
                 username = null;
             }
             try {
-                Thread.sleep(POLL_RATE);
+                Thread.sleep(pollRate.toMillis());
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
         }
-        if (returnUsername == null)
+        if (returnUsername == null) {
             throw new IllegalStateException("Username cannot be null");
-        return Map.of("username", returnUsername);
+        }
+        return Maps.of("username", returnUsername);
     }
 
     private void sendNewPlayer() {
-        connectionHandler.sendMessage(Map.of(
+        connectionHandler.sendMessage(Maps.of(
                 "request_type", "new-player",
-                "data", Map.of(
+                "data", Maps.of(
                         "username", username
                 )
         ));
@@ -101,7 +104,7 @@ public class TitleScreen extends JPanel implements ConnectionHandler.MessageObse
 
     @Override
     public void handleMessage(Map<String, Object> message) {
-        var requestType = (String) message.get("request_type");
+        String requestType = (String) message.get("request_type");
         if (requestType.equals("new-player-success")) {
             registered = true;
         } else if (requestType.equals("new-player-error")) {

@@ -1,36 +1,36 @@
 package org.example;
 
-import com.google.gson.*;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import com.google.gson.annotations.Expose;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
+import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.handshake.ServerHandshake;
 
 import java.io.StringReader;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.http.WebSocket;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutionException;
-
-import static java.net.http.HttpClient.newHttpClient;
 
 public class ConnectionHandler implements Runnable {
     private final Queue<String> sendQueue;
-    public static final Gson GSON = new Gson().newBuilder().excludeFieldsWithoutExposeAnnotation().setStrictness(Strictness.LENIENT).create();
-    private ConnectionStatus connectionStatusMessage = ConnectionStatus.CONNECTING;
+    public static final Gson GSON = new GsonBuilder().excludeFieldsWithoutExposeAnnotation().setLenient().create();
+    private volatile ConnectionStatus connectionStatusMessage = ConnectionStatus.CONNECTING;
     private final List<MessageObserver> observers;
+    private boolean shutdownHookRegistered;
 
     public ConnectionHandler() {
-        this.sendQueue = new ConcurrentLinkedQueue<>();
-        observers = new ArrayList<>();
+        this.sendQueue = new ConcurrentLinkedQueue<String>();
+        this.observers = new ArrayList<MessageObserver>();
     }
 
     @Override
@@ -39,102 +39,112 @@ public class ConnectionHandler implements Runnable {
     }
 
     private void connect() {
-        final Duration POLL = Duration.ofSeconds(5);
-        boolean connected = false;
+        final Duration poll = Duration.ofSeconds(5);
 
-        while (!connected) {
+        while (true) {
             try {
-                var client = newHttpClient();
                 connectionStatusMessage = ConnectionStatus.CONNECTING;
-                CompletableFuture<WebSocket> wsFuture = client.newWebSocketBuilder().buildAsync(new URI("ws://localhost:8080/connect"), new WebSocket.Listener() {
-                    final StringBuilder currentMessage = new StringBuilder();
-
+                final WebSocketClient ws = new WebSocketClient(new URI("ws://localhost:8080/connect")) {
                     @Override
-                    public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
-                        currentMessage.append(data);
-                        if (last) {
-                            try (var reader = new JsonReader(new StringReader(currentMessage.toString()))) {
-                                reader.setLenient(true);
-                                while (reader.peek() != JsonToken.END_DOCUMENT) {
-                                    JsonElement element = JsonParser.parseReader(reader);
-                                    if (element.isJsonObject()) {
-                                        Map<String, Object> messageMap = GSON.fromJson(element, new TypeToken<Map<String, Object>>() {
-                                        }.getType());
-                                        observers.removeIf(observer -> !observer.observing());
-                                        notifyObservers(messageMap);
-                                    } else {
-                                        System.err.println("Received non-object JSON: " + element);
-                                    }
-                                }
-                            } catch (Exception e) {
-                                System.err.println("Error parsing WebSocket message: " + e.getMessage());
-                            } finally {
-                                currentMessage.setLength(0);
-                            }
-                        }
-                        webSocket.request(1);
-                        return CompletableFuture.completedFuture(null);
-                    }
-
-                    @Override
-                    public void onOpen(WebSocket webSocket) {
+                    public void onOpen(ServerHandshake handshakeData) {
                         connectionStatusMessage = ConnectionStatus.SUCCESS;
                         System.out.println("Connected to server.");
-                        webSocket.request(1);
+                        if (Main.getUsername() != null) {
+                            sendQueue.add(GSON.toJson(Maps.of(
+                                    "request_type", "new-player",
+                                    "data", Maps.of("username", Main.getUsername())
+                            )));
+                        }
                     }
 
                     @Override
-                    public void onError(WebSocket webSocket, Throwable error) {
-                        System.err.println("WebSocket error: " + error.getMessage());
-                        reconnect();
-                        connectionStatusMessage = ConnectionStatus.FAILED;
+                    public void onMessage(String message) {
+                        parseMessage(message);
                     }
 
                     @Override
-                    public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
+                    public void onClose(int statusCode, String reason, boolean remote) {
                         System.out.println("WebSocket closed: " + reason);
                         connectionStatusMessage = ConnectionStatus.FAILED;
-                        reconnect();
-                        return CompletableFuture.completedFuture(null);
                     }
-                });
 
-                var ws = wsFuture.get();
-                Runtime.getRuntime().addShutdownHook(new Thread(() -> ws.sendText("{\"request_type\": \"sign-out\"}", true)));
-                connected = true;
-                while (!ws.isInputClosed()) {
-                    var message = sendQueue.poll();
+                    @Override
+                    public void onError(Exception error) {
+                        System.err.println("WebSocket error: " + error.getMessage());
+                        connectionStatusMessage = ConnectionStatus.FAILED;
+                    }
+                };
+
+                ws.connectBlocking();
+                registerShutdownHook(ws);
+                while (ws.isOpen()) {
+                    String message = sendQueue.poll();
                     if (message != null) {
-                        ws.sendText(message, true);
+                        ws.send(message);
                     }
                     try {
                         Thread.sleep(10);
                     } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
+                        Thread.currentThread().interrupt();
+                        throw e;
                     }
                 }
-            } catch (URISyntaxException | InterruptedException | ExecutionException e) {
+            } catch (URISyntaxException e) {
+                throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            } catch (Exception e) {
                 connectionStatusMessage = ConnectionStatus.FAILED;
-                System.err.println("Connection failed, retrying in " + POLL.getSeconds() + " seconds...");
+                System.err.println("Connection failed, retrying in " + poll.getSeconds() + " seconds...");
                 try {
-                    Thread.sleep(POLL.toMillis());
-                } catch (InterruptedException ie) {
+                    Thread.sleep(poll.toMillis());
+                } catch (InterruptedException interruptedException) {
                     Thread.currentThread().interrupt();
-                    throw new RuntimeException(ie);
+                    throw new RuntimeException(interruptedException);
                 }
             }
         }
     }
 
-    private void reconnect() {
-        if (Main.getUsername() != null) {
-            sendQueue.add(GSON.toJson(Map.of("request_type", "new-player", "data", Map.of("username", Main.getUsername()))));
+    private synchronized void registerShutdownHook(final WebSocketClient ws) {
+        if (shutdownHookRegistered) {
+            return;
         }
-        run();
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if (ws.isOpen()) {
+                    ws.send("{\"request_type\": \"sign-out\"}");
+                }
+            }
+        }));
+        shutdownHookRegistered = true;
+    }
+
+    private void parseMessage(String message) {
+        try {
+            JsonReader reader = new JsonReader(new StringReader(message));
+            reader.setLenient(true);
+            while (reader.peek() != JsonToken.END_DOCUMENT) {
+                JsonElement element = JsonParser.parseReader(reader);
+                if (element.isJsonObject()) {
+                    Map<String, Object> messageMap = GSON.fromJson(element, new TypeToken<Map<String, Object>>() {
+                    }.getType());
+                    observers.removeIf(observer -> !observer.observing());
+                    notifyObservers(messageMap);
+                } else {
+                    System.err.println("Received non-object JSON: " + element);
+                }
+            }
+            reader.close();
+        } catch (Exception e) {
+            System.err.println("Error parsing WebSocket message: " + e.getMessage());
+        }
     }
 
     private void notifyObservers(Map<String, Object> message) {
-        for (var observer : observers) {
+        for (MessageObserver observer : observers) {
             observer.handleMessage(message);
         }
     }
@@ -151,19 +161,75 @@ public class ConnectionHandler implements Runnable {
         observers.add(observer);
     }
 
-    public record PlayerUpdateInfo(@Expose int x, @Expose int y, @Expose List<Projectile> projectiles,
-                                   @Expose List<Block> blocks, @Expose double health, @Expose double shooterAngle, @Expose boolean facingLeft) {
+    public static final class PlayerUpdateInfo {
+        @Expose
+        private final int x;
+        @Expose
+        private final int y;
+        @Expose
+        private final List<Projectile> projectiles;
+        @Expose
+        private final List<Block> blocks;
+        @Expose
+        private final double health;
+        @Expose
+        private final double shooterAngle;
+        @Expose
+        private final boolean facingLeft;
+
+        public PlayerUpdateInfo(int x, int y, List<Projectile> projectiles, List<Block> blocks, double health, double shooterAngle, boolean facingLeft) {
+            this.x = x;
+            this.y = y;
+            this.projectiles = projectiles;
+            this.blocks = blocks;
+            this.health = health;
+            this.shooterAngle = shooterAngle;
+            this.facingLeft = facingLeft;
+        }
+
+        public int x() {
+            return x;
+        }
+
+        public int y() {
+            return y;
+        }
+
+        public List<Projectile> projectiles() {
+            return projectiles;
+        }
+
+        public List<Block> blocks() {
+            return blocks;
+        }
+
+        public double health() {
+            return health;
+        }
+
+        public double shooterAngle() {
+            return shooterAngle;
+        }
+
+        public boolean facingLeft() {
+            return facingLeft;
+        }
     }
 
     public enum ConnectionStatus {
         CONNECTING, FAILED, SUCCESS;
 
         public String toString() {
-            return switch (this) {
-                case CONNECTING -> "Connecting...";
-                case FAILED -> "Failed";
-                case SUCCESS -> "Connected";
-            };
+            switch (this) {
+                case CONNECTING:
+                    return "Connecting...";
+                case FAILED:
+                    return "Failed";
+                case SUCCESS:
+                    return "Connected";
+                default:
+                    throw new IllegalStateException("Unhandled connection status: " + this);
+            }
         }
     }
 

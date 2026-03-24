@@ -6,7 +6,8 @@ import java.awt.*;
 import java.awt.geom.Point2D;
 import java.util.function.BinaryOperator;
 
-import static java.lang.Math.*;
+import static java.lang.Math.hypot;
+import static java.lang.Math.round;
 
 public class Vec2 {
     @Expose
@@ -15,7 +16,7 @@ public class Vec2 {
     @Expose
     private double y;
 
-    public final static BinaryOperator<Double>
+    public static final BinaryOperator<Double>
             ADD = Double::sum,
             SUBTRACT = (a, b) -> a - b,
             MULTIPLY = (a, b) -> a * b,
@@ -119,7 +120,7 @@ public class Vec2 {
     }
 
     public double angleTo(Vec2 other) {
-        var sub = sub(other);
+        Vec2 sub = sub(other);
         return Math.atan2(sub.y, sub.x);
     }
 
@@ -133,8 +134,9 @@ public class Vec2 {
 
     public Vec2 normalized() {
         double mag = hypot(x, y);
-        if (mag == 0)
+        if (mag == 0) {
             return zero();
+        }
         return this.div(mag);
     }
 
@@ -176,9 +178,14 @@ public class Vec2 {
 
     @Override
     public final boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Vec2 vec2)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof Vec2)) {
+            return false;
+        }
 
+        Vec2 vec2 = (Vec2) o;
         return Double.compare(x, vec2.x) == 0 && Double.compare(y, vec2.y) == 0;
     }
 
@@ -191,6 +198,6 @@ public class Vec2 {
 
     @Override
     public String toString() {
-        return "(%f, %f)".formatted(x, y);
+        return String.format("(%f, %f)", x, y);
     }
 }

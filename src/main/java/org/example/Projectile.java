@@ -7,18 +7,30 @@ import java.awt.geom.Line2D;
 import java.util.HashSet;
 import java.util.UUID;
 
-import static java.lang.Math.*;
-import static org.example.PolyUtils.*;
-import static org.example.Wall.*;
+import static java.lang.Math.abs;
+import static java.lang.Math.cos;
+import static java.lang.Math.hypot;
+import static java.lang.Math.round;
+import static java.lang.Math.sin;
+import static java.lang.Math.toDegrees;
+import static java.lang.Math.toRadians;
+import static org.example.PolyUtils.from;
+import static org.example.PolyUtils.getCorners;
+import static org.example.PolyUtils.getHeight;
+import static org.example.PolyUtils.getWidth;
+import static org.example.Wall.DOWN;
+import static org.example.Wall.LEFT;
 
 public class Projectile implements PhysicsObject {
-    private final static double WALL_DAMPING = .44, OBJECT_DAMPING = .6;
+    private static final double WALL_DAMPING = .44;
+    private static final double OBJECT_DAMPING = .6;
     @Expose
     private Vec2 position;
     @Expose
     private Vec2 velocity;
     private static final double INIT_SPEED = 1.4;
-    public static final int PROJ_WIDTH = 30, PROJ_HEIGHT = 14;
+    public static final int PROJ_WIDTH = 30;
+    public static final int PROJ_HEIGHT = 14;
     @Expose
     private double angle;
     private static final int DESPAWN_TIME = 1000;
@@ -33,7 +45,7 @@ public class Projectile implements PhysicsObject {
     public Projectile(double x, double y, Vec2 direction, Player player) {
         int range = 10;
         int min = -5;
-        var recoil = (Math.random() * range + 1) + min;
+        double recoil = (Math.random() * range + 1) + min;
         this.velocity = direction.mul(INIT_SPEED);
         this.angle = toRadians(toDegrees(direction.asAngle()) + recoil);
         this.velocity.set(cos(angle), sin(angle));
@@ -49,15 +61,16 @@ public class Projectile implements PhysicsObject {
 
     @Override
     public void update(double dt) {
-        if (timeSettled == 0 && abs(velocity.getX()) <= 0.0001 && abs(velocity.getY()) <= .00001)
+        if (timeSettled == 0 && abs(velocity.getX()) <= 0.0001 && abs(velocity.getY()) <= .00001) {
             timeSettled = System.currentTimeMillis();
+        }
     }
 
     @Override
     public void draw(Graphics2D g2d) {
         double centerX = getX() + PROJ_WIDTH / 2d;
         double centerY = getY() + PROJ_HEIGHT / 2d;
-        var transform = g2d.getTransform();
+        java.awt.geom.AffineTransform transform = g2d.getTransform();
         g2d.setColor(player != null ? Color.BLUE : Color.RED.brighter());
         g2d.rotate(angle, centerX, centerY);
         g2d.fillRect((int) round(position.getX()), (int) round(position.getY()), PROJ_WIDTH, PROJ_HEIGHT);
@@ -77,8 +90,10 @@ public class Projectile implements PhysicsObject {
         double cw = PROJ_WIDTH * abs(cos(angle)) + PROJ_HEIGHT * abs(sin(angle));
         double ch = PROJ_WIDTH * abs(sin(angle)) + PROJ_HEIGHT * abs(cos(angle));
         return new Rectangle(
-                (int) round((getX() + PROJ_WIDTH / 2d) - cw / 2), (int) round((getY() + PROJ_HEIGHT / 2d) - ch / 2),
-                (int) round(cw), (int) round(ch)
+                (int) round((getX() + PROJ_WIDTH / 2d) - cw / 2),
+                (int) round((getY() + PROJ_HEIGHT / 2d) - ch / 2),
+                (int) round(cw),
+                (int) round(ch)
         );
     }
 
@@ -115,9 +130,7 @@ public class Projectile implements PhysicsObject {
     @Override
     public Polygon getCollisionPoly() {
         return from(
-                new Rectangle(
-                        round((float) position.getX()), round((float) position.getY()), PROJ_WIDTH, PROJ_HEIGHT
-                ),
+                new Rectangle(round((float) position.getX()), round((float) position.getY()), PROJ_WIDTH, PROJ_HEIGHT),
                 angle
         );
     }
@@ -130,17 +143,19 @@ public class Projectile implements PhysicsObject {
     @Override
     public void handleObjectCollision(PhysicsObject obj) {
         if (obj instanceof Block) {
-            var intersection = getFittedBox().intersection(obj.getCollisionPoly().getBounds());
-            var poly = obj.getCollisionPoly();
-            // get lines
-            var lines = new HashSet<Line2D>();
-            var corners = getCorners(poly);
-            for (var corner : corners)
-                for (var other : corners)
-                    if (corner.distance(other) < hypot(getWidth(poly), getHeight(poly)))
+            Rectangle intersection = getFittedBox().intersection(obj.getCollisionPoly().getBounds());
+            Polygon poly = obj.getCollisionPoly();
+            HashSet<Line2D> lines = new HashSet<Line2D>();
+            Point[] corners = getCorners(poly);
+            for (Point corner : corners) {
+                for (Point other : corners) {
+                    if (corner.distance(other) < hypot(getWidth(poly), getHeight(poly))) {
                         lines.add(new Line2D.Double(corner, other));
+                    }
+                }
+            }
 
-            for (var line : lines) {
+            for (Line2D line : lines) {
                 if (intersection.intersectsLine(line)) {
                     if (line.getP1().getX() == line.getP2().getX()) {
                         bounce(OBJECT_DAMPING, LEFT);
@@ -150,7 +165,7 @@ public class Projectile implements PhysicsObject {
                     return;
                 }
             }
-        } else if (obj instanceof Player p && player != p) {
+        } else if (obj instanceof Player && player != obj) {
             destroy();
         }
     }
@@ -167,12 +182,16 @@ public class Projectile implements PhysicsObject {
 
     @Override
     public void setAngle(double angle) {
-        if (player == null) return;
+        if (player == null) {
+            return;
+        }
         this.angle = angle;
     }
 
     public Vec2 getVelocity() {
-        if (player == null) return Vec2.zero();
+        if (player == null) {
+            return Vec2.zero();
+        }
         return velocity;
     }
 

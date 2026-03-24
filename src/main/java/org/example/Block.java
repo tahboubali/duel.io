@@ -6,17 +6,20 @@ import java.awt.*;
 import java.time.Duration;
 import java.util.UUID;
 
-import static java.lang.Math.*;
+import static java.lang.Math.max;
+import static java.lang.Math.min;
+import static java.lang.Math.round;
 import static java.lang.System.currentTimeMillis;
-import static org.example.PolyUtils.from;
 import static org.example.PhysicsHandler.GravityApplier;
+import static org.example.PolyUtils.from;
 
 public class Block implements PhysicsObject {
-    private final static int MAX_HEALTH = 10;
+    private static final int MAX_HEALTH = 10;
     private Color color;
     @Expose
     private Vec2 position;
-    public static final int WIDTH = (int) round(40 * 1.76), HEIGHT = (int) round(40 * 1.76);
+    public static final int WIDTH = (int) round(40 * 1.76);
+    public static final int HEIGHT = (int) round(40 * 1.76);
     private static final long DESPAWN_TIME = Duration.ofSeconds(40).toMillis();
     private final long createdMillis;
     private GravityApplier gravityApplier;
@@ -41,7 +44,6 @@ public class Block implements PhysicsObject {
         this.id = UUID.randomUUID().toString();
     }
 
-    // used for Json serialization/deserialization
     @SuppressWarnings("unused")
     public Block() {
         createdMillis = currentTimeMillis();
@@ -60,11 +62,15 @@ public class Block implements PhysicsObject {
 
     @Override
     public void draw(Graphics2D g2d) {
-        var point = position.asPoint();
+        Point point = position.asPoint();
         double r = max(0, color.getRed() - (health / MAX_HEALTH * 255));
         double g = max(0, color.getGreen() - (health / MAX_HEALTH * 255));
         double b = max(0, color.getBlue() - (health / MAX_HEALTH * 255));
-        color = new Color(max(0, (int) round(color.getRed() - r)), max(0, (int) round(color.getGreen() - g)), max(0, (int) round(color.getBlue() - b)));
+        color = new Color(
+                max(0, (int) round(color.getRed() - r)),
+                max(0, (int) round(color.getGreen() - g)),
+                max(0, (int) round(color.getBlue() - b))
+        );
         g2d.setColor(color);
         g2d.fillRect(point.x, point.y, WIDTH, HEIGHT);
         g2d.setColor(Color.WHITE);
@@ -120,12 +126,14 @@ public class Block implements PhysicsObject {
 
     @Override
     public void handleObjectCollision(PhysicsObject obj) {
-        if (obj instanceof Projectile projectile) {
+        if (obj instanceof Projectile) {
+            Projectile projectile = (Projectile) obj;
             double damage = projectile.getDamageVelocity().magnitude();
             health -= damage;
         }
-        if (this.getCollisionPoly().getBounds().getCenterY() < obj.getCollisionPoly().getBounds().getCenterY())
+        if (this.getCollisionPoly().getBounds().getCenterY() < obj.getCollisionPoly().getBounds().getCenterY()) {
             bounce(.2, Wall.DOWN);
+        }
     }
 
     @Override

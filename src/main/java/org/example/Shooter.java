@@ -5,28 +5,31 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static java.lang.Math.*;
+import static java.lang.Math.PI;
+import static java.lang.Math.abs;
+import static java.lang.Math.round;
 import static org.example.PolyUtils.getHeight;
 import static org.example.PolyUtils.getWidth;
 
 public class Shooter implements GameObj {
     private final List<Projectile> projectiles;
     private final Player player;
-    public int xOffset, yOffset;
+    public int xOffset;
+    public int yOffset;
     private Vec2 direction;
     private final GamePanel gamePanel;
     private boolean facingLeft;
 
     public Shooter(Player player, GamePanel gamePanel) {
         this.player = player;
-        this.projectiles = Collections.synchronizedList(new ArrayList<>());
+        this.projectiles = Collections.synchronizedList(new ArrayList<Projectile>());
         this.direction = Vec2.zero();
         this.gamePanel = gamePanel;
         this.yOffset = -10;
     }
 
     public void shoot() {
-        var bullet = new Projectile(getX(), getY(), direction, player);
+        Projectile bullet = new Projectile(getX(), getY(), direction, player);
         projectiles.add(bullet);
         gamePanel.addPhysicsObject(bullet);
     }
@@ -40,21 +43,26 @@ public class Shooter implements GameObj {
 
     @Override
     public void update(double dt) {
-        if (!(player instanceof Opponent))
+        if (!(player instanceof Opponent)) {
             updateDirection();
+        }
         projectiles.removeIf(Projectile::shouldDespawn);
         projectiles.forEach(projectile -> projectile.update(dt));
     }
 
     private void updateDirection() {
-        var mousePosition = gamePanel.getMousePosition();
-        if (mousePosition == null) return;
-        var playerCenterPos = player.getPosition().add(Vec2.of(getWidth(player.getCollisionPoly()) / 2d, getHeight(player.getCollisionPoly())  / 2d));
+        Point mousePosition = gamePanel.getMousePosition();
+        if (mousePosition == null) {
+            return;
+        }
+        Vec2 playerCenterPos = player.getPosition().add(Vec2.of(getWidth(player.getCollisionPoly()) / 2d, getHeight(player.getCollisionPoly()) / 2d));
         facingLeft = abs(playerCenterPos.angleTo(mousePosition)) < PI / 2;
-        var gunPos = Vec2.of(getX(), getY());
-        var delta = Vec2.of(mousePosition).sub(gunPos);
+        Vec2 gunPos = Vec2.of(getX(), getY());
+        Vec2 delta = Vec2.of(mousePosition).sub(gunPos);
         double distance = gunPos.asPoint().distance(mousePosition);
-        if (distance != 0) direction = delta.div(distance);
+        if (distance != 0) {
+            direction = delta.div(distance);
+        }
     }
 
     public void setFacingLeft(boolean facingLeft) {
@@ -67,20 +75,21 @@ public class Shooter implements GameObj {
 
     @Override
     public void draw(Graphics2D g2d) {
-        var transform = g2d.getTransform();
+        java.awt.geom.AffineTransform transform = g2d.getTransform();
         drawGun(g2d);
         g2d.setTransform(transform);
         projectiles.forEach(projectile -> projectile.draw(g2d));
     }
 
     public void drawGun(Graphics2D g2d) {
-        var r1 = new Rectangle(getX(), getY(), 28, 14);
-        var r2 = new Rectangle(getX(), getY(), 11, 20);
+        Rectangle r1 = new Rectangle(getX(), getY(), 28, 14);
+        Rectangle r2 = new Rectangle(getX(), getY(), 11, 20);
         if (facingLeft) {
             r1.y += r2.height - r1.height;
             xOffset = -getWidth(player.getCollisionPoly()) / 2;
-        } else
+        } else {
             xOffset = getWidth(player.getCollisionPoly()) / 2;
+        }
         xOffset -= r1.width / 2;
         g2d.setColor(Color.BLACK);
         g2d.rotate(getAngle(), r1.x + r1.getWidth() / 2, r2.y + r2.getHeight() / 2);
@@ -93,7 +102,7 @@ public class Shooter implements GameObj {
     }
 
     public int getY() {
-        return (int) round(player.getY() + getHeight(player.getCollisionPoly())  / 2d) + yOffset;
+        return (int) round(player.getY() + getHeight(player.getCollisionPoly()) / 2d) + yOffset;
     }
 
     public Vec2 getDirection() {
@@ -112,5 +121,4 @@ public class Shooter implements GameObj {
         projectiles.forEach(Projectile::destroy);
         projectiles.clear();
     }
-
 }

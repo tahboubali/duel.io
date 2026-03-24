@@ -1,6 +1,9 @@
 package org.example;
 
-import static org.example.Vec2.*;
+import static org.example.Vec2.down;
+import static org.example.Vec2.left;
+import static org.example.Vec2.right;
+import static org.example.Vec2.up;
 
 public enum Wall {
     UP,
@@ -9,11 +12,17 @@ public enum Wall {
     RIGHT;
 
     public Vec2 normal() {
-        return switch (this) {
-            case UP -> up();
-            case LEFT -> left();
-            case DOWN -> down();
-            case RIGHT -> right();
-        };
+        switch (this) {
+            case UP:
+                return up();
+            case LEFT:
+                return left();
+            case DOWN:
+                return down();
+            case RIGHT:
+                return right();
+            default:
+                throw new IllegalStateException("Unhandled wall: " + this);
+        }
     }
 }

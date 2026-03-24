@@ -1,6 +1,5 @@
 package org.example;
 
-
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
@@ -8,12 +7,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static java.lang.Math.*;
+import static java.lang.Math.abs;
 import static java.lang.System.nanoTime;
 import static java.util.Arrays.stream;
-import static org.example.PolyUtils.*;
+import static org.example.PolyUtils.intersects;
+import static org.example.PolyUtils.rotate;
 import static org.example.Vec2.zero;
-import static org.example.Wall.*;
+import static org.example.Wall.DOWN;
+import static org.example.Wall.LEFT;
+import static org.example.Wall.RIGHT;
+import static org.example.Wall.UP;
 
 public class PhysicsHandler {
     public static final double GRAVITATIONAL_ACCELERATION = 0.005;
@@ -22,7 +25,9 @@ public class PhysicsHandler {
 
     public PhysicsHandler(GamePanel gamePanel, PhysicsObject... objects) {
         this.gamePanel = gamePanel;
-        this.appliers = Collections.synchronizedList(stream(objects).map(GravityApplier::new).collect(Collectors.toCollection(ArrayList<GravityApplier>::new)));
+        this.appliers = Collections.synchronizedList(stream(objects)
+                .map(GravityApplier::new)
+                .collect(Collectors.toCollection(ArrayList<GravityApplier>::new)));
         appliers.forEach(applier -> applier.getObject().setGravityApplier(applier));
     }
 
@@ -45,27 +50,32 @@ public class PhysicsHandler {
 
     private void applyGravity(double dt) {
         appliers.forEach(applier -> {
-            var velocity = applier.getGravityVelocity();
+            Vec2 velocity = applier.getGravityVelocity();
             velocity.set(velocity.add(Vec2.of(0, GRAVITATIONAL_ACCELERATION * applier.getObject().getMass() * dt)));
         });
     }
 
     private void handleWallCollisions() {
-        var bounds = new Rectangle(gamePanel.getSize());
+        Rectangle bounds = new Rectangle(gamePanel.getSize());
 
         appliers.forEach(applier -> {
-            var object = applier.getObject();
-            var box = object.getCollisionPoly();
-            var bBounds = box.getBounds();
-            var original = rotate(box, -object.getAngle());
-            double distX = abs(stream(box.xpoints).min().orElseThrow() - stream(original.xpoints).min().orElseThrow());
-            double distY = abs(stream(box.ypoints).min().orElseThrow() - stream(original.ypoints).min().orElseThrow());
+            PhysicsObject object = applier.getObject();
+            Polygon box = object.getCollisionPoly();
+            Rectangle bBounds = box.getBounds();
+            Polygon original = rotate(box, -object.getAngle());
+            double distX = abs(stream(box.xpoints).min().getAsInt() - stream(original.xpoints).min().getAsInt());
+            double distY = abs(stream(box.ypoints).min().getAsInt() - stream(original.ypoints).min().getAsInt());
             if (!bounds.contains(bBounds)) {
-                var walls = new ArrayList<Wall>();
-                int leftX = stream(box.xpoints).min().orElseThrow(), upY = stream(box.ypoints).min().orElseThrow(), rightX = stream(box.xpoints).max().orElseThrow(), downY = stream(box.ypoints).max().orElseThrow();
+                ArrayList<Wall> walls = new ArrayList<Wall>();
+                int leftX = stream(box.xpoints).min().getAsInt();
+                int upY = stream(box.ypoints).min().getAsInt();
+                int rightX = stream(box.xpoints).max().getAsInt();
+                int downY = stream(box.ypoints).max().getAsInt();
                 if (upY <= bounds.y) {
                     object.setY(distY + 1);
-                    if (!(object instanceof Player)) walls.add(UP);
+                    if (!(object instanceof Player)) {
+                        walls.add(UP);
+                    }
                 }
 
                 if (leftX <= bounds.y) {
@@ -97,13 +107,17 @@ public class PhysicsHandler {
 
     private void handleObjectCollisions() {
         for (int i = 0; i < appliers.size(); i++) {
-            var first = appliers.get(i).getObject();
+            PhysicsObject first = appliers.get(i).getObject();
             for (int j = i + 1; j < appliers.size(); j++) {
-                var second = appliers.get(j).getObject();
+                PhysicsObject second = appliers.get(j).getObject();
                 if (first.hasCollision() && second.hasCollision() && intersects(first.getCollisionPoly(), second.getCollisionPoly())) {
                     boolean skip = second instanceof Projectile && first instanceof Projectile;
-                    skip = skip || (first instanceof Player player && second instanceof Projectile projectile && projectile.getPlayer() == player);
-                    skip = skip || (second instanceof Player player && first instanceof Projectile projectile && projectile.getPlayer() == player);
+                    if (!skip && first instanceof Player && second instanceof Projectile) {
+                        skip = ((Projectile) second).getPlayer() == first;
+                    }
+                    if (!skip && second instanceof Player && first instanceof Projectile) {
+                        skip = ((Projectile) first).getPlayer() == second;
+                    }
                     if (!skip) {
                         first.handleObjectCollision(second);
                         second.handleObjectCollision(first);
@@ -118,10 +132,11 @@ public class PhysicsHandler {
     }
 
     public static void restrict(PhysicsObject first, PhysicsObject second) {
-        if ((first instanceof Player && second instanceof Projectile) || (first instanceof Projectile && second instanceof Player))
+        if ((first instanceof Player && second instanceof Projectile) || (first instanceof Projectile && second instanceof Player)) {
             return;
-        var firstBounds = first.getCollisionPoly().getBounds();
-        var secondBounds = second.getCollisionPoly().getBounds();
+        }
+        Rectangle firstBounds = first.getCollisionPoly().getBounds();
+        Rectangle secondBounds = second.getCollisionPoly().getBounds();
 
         double overlapX = Math.min(firstBounds.getMaxX() - secondBounds.getMinX(), secondBounds.getMaxX() - firstBounds.getMinX());
         double overlapY = Math.min(firstBounds.getMaxY() - secondBounds.getMinY(), secondBounds.getMaxY() - firstBounds.getMinY());
@@ -133,11 +148,13 @@ public class PhysicsHandler {
         } else {
             double separation = overlapY * (firstBounds.getCenterY() > secondBounds.getCenterY() ? 1 : -1);
             if (firstBounds.getCenterY() < secondBounds.getCenterY()) {
-                if (first.getGravityApplier() != null)
+                if (first.getGravityApplier() != null) {
                     first.getGravityApplier().getGravityVelocity().set(zero());
+                }
             } else {
-                if (second.getGravityApplier() != null)
+                if (second.getGravityApplier() != null) {
                     second.getGravityApplier().getGravityVelocity().set(zero());
+                }
             }
             first.getPosition().setY(first.getPosition().getY() + separation / 2);
             second.getPosition().setY(second.getPosition().getY() - separation / 2);
@@ -145,7 +162,7 @@ public class PhysicsHandler {
     }
 
     public List<PhysicsObject> getObjects() {
-        return appliers.stream().map(GravityApplier::getObject).toList();
+        return appliers.stream().map(GravityApplier::getObject).collect(Collectors.toList());
     }
 
     public List<GravityApplier> getAppliers() {
@@ -157,7 +174,7 @@ public class PhysicsHandler {
     }
 
     public void trackObject(PhysicsObject object) {
-        var applier = new GravityApplier(object);
+        GravityApplier applier = new GravityApplier(object);
         appliers.add(applier);
         object.setGravityApplier(applier);
     }
@@ -172,8 +189,8 @@ public class PhysicsHandler {
         }
 
         public void apply(double dt) {
-            var position = object.getPosition();
-            var velocity = object.getVelocity().mul(dt);
+            Vec2 position = object.getPosition();
+            Vec2 velocity = object.getVelocity().mul(dt);
             velocity.set(velocity.add(Vec2.of(0, this.gravityVelocity.getY() * dt)));
             object.setPosition(velocity.add(position));
             object.setAngle(velocity.asAngle());

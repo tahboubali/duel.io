@@ -1,29 +1,38 @@
 package org.example;
 
 import java.awt.*;
-
-import static java.lang.Math.*;
-import static org.example.KeyHandler.*;
-import static org.example.MouseHandler.isLeftClicked;
-import static org.example.MouseHandler.isRightClicked;
-import static org.example.ConnectionHandler.*;
-import static org.example.PolyUtils.*;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static java.lang.Math.cos;
+import static java.lang.Math.max;
+import static java.lang.Math.min;
+import static java.lang.Math.round;
+import static java.lang.Math.sin;
+import static org.example.ConnectionHandler.PlayerUpdateInfo;
+import static org.example.KeyHandler.isLeft;
+import static org.example.KeyHandler.isRight;
+import static org.example.KeyHandler.isShift;
+import static org.example.KeyHandler.isSpace;
+import static org.example.MouseHandler.isLeftClicked;
+import static org.example.MouseHandler.isRightClicked;
+import static org.example.PolyUtils.from;
+import static org.example.PolyUtils.intersects;
+
 public class Player implements PhysicsObject {
-    private static final double MAX_HEALTH = 20, HEALTH_DECREMENT = 2.5;
+    private static final double MAX_HEALTH = 20;
+    private static final double HEALTH_DECREMENT = 2.5;
     public static final int WIDTH = 30;
     public static final int HEIGHT = 66;
-    private static final int SHOT_COOLDOWN_MILLIS = 320,
-            BUILD_COOLDOWN_MILLIS = 350;
-    private final static double SPEED = .5;
-    private final static double JUMP_VELOCITY = 1.4;
+    private static final int SHOT_COOLDOWN_MILLIS = 320;
+    private static final int BUILD_COOLDOWN_MILLIS = 350;
+    private static final double SPEED = .5;
+    private static final double JUMP_VELOCITY = 1.4;
     private final Shooter shooter;
     private final Vec2 position;
-    private long lastShot, lastBuilt;
+    private long lastShot;
+    private long lastBuilt;
     private final List<Block> blocks;
     private boolean jumping;
     private final GamePanel gamePanel;
@@ -37,7 +46,7 @@ public class Player implements PhysicsObject {
         this.gamePanel = gamePanel;
         this.position = Vec2.of(gamePanel.getPreferredSize().getWidth() / 2d - WIDTH / 2d, gamePanel.getPreferredSize().getHeight() / 2d - HEIGHT / 2d);
         this.shooter = new Shooter(this, gamePanel);
-        this.blocks = Collections.synchronizedList(new ArrayList<>());
+        this.blocks = Collections.synchronizedList(new ArrayList<Block>());
         this.velocity = Vec2.zero();
         this.name = name;
         this.health = MAX_HEALTH;
@@ -66,16 +75,23 @@ public class Player implements PhysicsObject {
             }
         }
         if (isRightClicked()) {
-            int MAX_VELOCITY = 120;
-            var direction = shooter.getDirection().mul(MAX_VELOCITY);
-            var block = new Block(position.getX() + WIDTH / 2d + direction.getX() * .75 - Block.WIDTH / 2d,
-                    position.getY() + HEIGHT / 2d + direction.getY() * .75 - Block.HEIGHT / 2d, Color.GREEN, this, gamePanel);
+            int maxVelocity = 120;
+            Vec2 direction = shooter.getDirection().mul(maxVelocity);
+            Block block = new Block(
+                    position.getX() + WIDTH / 2d + direction.getX() * .75 - Block.WIDTH / 2d,
+                    position.getY() + HEIGHT / 2d + direction.getY() * .75 - Block.HEIGHT / 2d,
+                    Color.GREEN,
+                    this,
+                    gamePanel
+            );
             block.getVelocity().set(direction.mul(.0015));
-            var intersects = false;
-            for (var other : blocks.stream().map(Block::getCollisionPoly).toList()) {
-                if (intersects(block.getCollisionPoly(), other)) {
-                    intersects = true;
-                    break;
+            boolean intersects = false;
+            synchronized (blocks) {
+                for (Block otherBlock : blocks) {
+                    if (intersects(block.getCollisionPoly(), otherBlock.getCollisionPoly())) {
+                        intersects = true;
+                        break;
+                    }
                 }
             }
             long now = System.currentTimeMillis();
@@ -101,7 +117,7 @@ public class Player implements PhysicsObject {
     @Override
     public void draw(Graphics2D g2d) {
         g2d.setColor(getColor());
-        var point = position.asPoint();
+        Point point = position.asPoint();
         g2d.fillRect(point.x, point.y, WIDTH, HEIGHT);
         g2d.setColor(Color.BLACK);
         g2d.setStroke(new BasicStroke(2.3f));
@@ -118,7 +134,7 @@ public class Player implements PhysicsObject {
         blocks.forEach(Block::destroy);
         blocks.clear();
         shooter.clearProjectiles();
-        var position = Vec2.zero();
+        Vec2 position = Vec2.zero();
         position.setY(gamePanel.getHeight() / 2d - WIDTH / 2d);
         if (positionString.equals("left")) {
             position.setX(gamePanel.getWidth() / 4d - WIDTH / 2d);
@@ -214,11 +230,15 @@ public class Player implements PhysicsObject {
         if (position.getY() + HEIGHT >= obj.getY() && getY() < obj.getY()) {
             jumping = false;
             bounce(.4, Wall.DOWN);
-            if (gravityApplier != null)
+            if (gravityApplier != null) {
                 gravityApplier.getGravityVelocity().setY(0);
+            }
         }
-        if (obj instanceof Projectile projectile && this instanceof Opponent && projectile.getPlayer() != this && projectile.getPlayer() != null) {
-            gamePanel.sendHealthDelta(-HEALTH_DECREMENT * projectile.getDamageVelocity().magnitude());
+        if (obj instanceof Projectile && this instanceof Opponent) {
+            Projectile projectile = (Projectile) obj;
+            if (projectile.getPlayer() != this && projectile.getPlayer() != null) {
+                gamePanel.sendHealthDelta(-HEALTH_DECREMENT * projectile.getDamageVelocity().magnitude());
+            }
         }
     }
 
@@ -229,7 +249,6 @@ public class Player implements PhysicsObject {
 
     @Override
     public void handleWallCollision(Wall... walls) {
-
     }
 
     @Override
@@ -249,7 +268,15 @@ public class Player implements PhysicsObject {
     }
 
     public PlayerUpdateInfo getUpdateInfo() {
-        return new PlayerUpdateInfo(round((float) getX()), round((float) getY()), shooter.getProjectiles(), blocks, health, shooter.getDirection().asAngle(), shooter.isFacingLeft());
+        return new PlayerUpdateInfo(
+                round((float) getX()),
+                round((float) getY()),
+                shooter.getProjectiles(),
+                blocks,
+                health,
+                shooter.getDirection().asAngle(),
+                shooter.isFacingLeft()
+        );
     }
 
     @Override
@@ -281,8 +308,9 @@ public class Player implements PhysicsObject {
         g2d.setStroke(new BasicStroke(1.8f));
         int healthBarWidth = WIDTH + 5;
         int healthBarHeight = 10;
-        var asPoint = position.asPoint();
-        int healthBarY = asPoint.y - 22 - healthBarHeight, healthBarX = (asPoint.x + WIDTH / 2) - healthBarWidth / 2;
+        Point asPoint = position.asPoint();
+        int healthBarY = asPoint.y - 22 - healthBarHeight;
+        int healthBarX = (asPoint.x + WIDTH / 2) - healthBarWidth / 2;
         int healthWidth = (int) round(health / MAX_HEALTH * healthBarWidth);
         g2d.setColor((this instanceof Opponent) ? Color.RED : Color.GREEN);
         g2d.fillRect(healthBarX, healthBarY, healthWidth, healthBarHeight);
@@ -291,10 +319,10 @@ public class Player implements PhysicsObject {
     }
 
     private void drawUsername(Graphics2D g2d) {
-        var fontMetrics = g2d.getFontMetrics();
+        FontMetrics fontMetrics = g2d.getFontMetrics();
         int usernameWidth = fontMetrics.stringWidth(name);
         int offset = fontMetrics.getHeight() + 15;
-        var asPoint = position.asPoint();
+        Point asPoint = position.asPoint();
         int nameX = asPoint.x - usernameWidth / 2 + WIDTH / 2;
         int nameY = (asPoint.y - offset) - fontMetrics.getHeight() / 2 + HEIGHT / 2;
         g2d.setColor(Color.BLACK);
