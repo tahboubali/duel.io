@@ -119,6 +119,10 @@ public class Projectile implements PhysicsObject {
 
     @Override
     public void setPosition(Vec2 vec2) {
+        if (this.position == null) {
+            this.position = vec2;
+            return;
+        }
         this.position.set(vec2);
     }
 
@@ -239,5 +243,12 @@ public class Projectile implements PhysicsObject {
 
     public String getId() {
         return id;
+    }
+
+    public void restoreState(Vec2 position, Vec2 velocity, double angle, String id) {
+        this.position = position;
+        this.velocity = velocity;
+        this.angle = angle;
+        this.id = id;
     }
 }

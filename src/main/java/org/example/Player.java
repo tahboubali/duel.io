@@ -41,6 +41,8 @@ public class Player implements PhysicsObject {
     private PhysicsHandler.GravityApplier gravityApplier;
     private long lastCollision;
     private double health;
+    private long lastAutoJump;
+    private int autoDirection = 1;
 
     public Player(GamePanel gamePanel, String name) {
         this.gamePanel = gamePanel;
@@ -55,19 +57,75 @@ public class Player implements PhysicsObject {
     @Override
     public void update(double dt) {
         velocity = Vec2.zero();
-        if (isLeft()) {
+        boolean autoWalkEnabled = BrowserHarnessBridge.isEnabled("autowalk");
+        boolean autoJumpEnabled = BrowserHarnessBridge.isEnabled("autojump");
+        boolean autoFireEnabled = BrowserHarnessBridge.isEnabled("autofire");
+        String autoRun = BrowserHarnessBridge.getQueryParam("autorun");
+        boolean moveLeft = isLeft();
+        boolean moveRight = isRight();
+        if (autoWalkEnabled) {
+            if (position.getX() <= 1) {
+                autoDirection = 1;
+            } else if (position.getX() >= gamePanel.getWidth() - WIDTH - 1) {
+                autoDirection = -1;
+            }
+            moveLeft = autoDirection < 0;
+            moveRight = autoDirection > 0;
+        } else if (autoRun != null) {
+            if ("left".equalsIgnoreCase(autoRun)) {
+                moveLeft = true;
+            } else if ("right".equalsIgnoreCase(autoRun)) {
+                moveRight = true;
+            } else if ("toward-center".equalsIgnoreCase(autoRun)) {
+                if (getX() + WIDTH / 2d >= gamePanel.getWidth() / 2d) {
+                    moveLeft = true;
+                    moveRight = false;
+                } else {
+                    moveLeft = false;
+                    moveRight = true;
+                }
+            }
+        }
+        if (moveLeft) {
             velocity.setX(velocity.getX() - SPEED);
         }
         if (isShift()) {
             velocity.setY(velocity.getY() + SPEED);
         }
-        if (isRight()) {
+        if (moveRight) {
             velocity.setX(velocity.getX() + SPEED);
         }
         if (isSpace()) {
             jumping = true;
         }
+        if (autoJumpEnabled && System.currentTimeMillis() - lastAutoJump >= 1200) {
+            jumping = true;
+            lastAutoJump = System.currentTimeMillis();
+        }
         if (isLeftClicked()) {
+            long now = System.currentTimeMillis();
+            if (now - lastShot >= SHOT_COOLDOWN_MILLIS) {
+                shooter.shoot();
+                lastShot = now;
+            }
+        }
+        if (autoFireEnabled) {
+            Opponent opponent = gamePanel.getOpponent();
+            if (opponent != null) {
+                Vec2 playerCenter = Vec2.of(getX() + WIDTH / 2d, getY() + HEIGHT / 2d);
+                Vec2 opponentCenter = Vec2.of(opponent.getX() + WIDTH / 2d, opponent.getY() + HEIGHT / 2d);
+                Vec2 delta = opponentCenter.sub(playerCenter);
+                if (delta.magnitude() != 0) {
+                    shooter.getDirection().set(delta.normalized());
+                }
+                shooter.setFacingLeft(delta.getX() < 0);
+            } else if (moveLeft && !moveRight) {
+                shooter.getDirection().set(Vec2.left());
+                shooter.setFacingLeft(true);
+            } else if (moveRight && !moveLeft) {
+                shooter.getDirection().set(Vec2.right());
+                shooter.setFacingLeft(false);
+            }
             long now = System.currentTimeMillis();
             if (now - lastShot >= SHOT_COOLDOWN_MILLIS) {
                 shooter.shoot();

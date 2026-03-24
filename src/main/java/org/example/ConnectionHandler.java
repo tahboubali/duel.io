@@ -27,6 +27,7 @@ public class ConnectionHandler implements Runnable {
     private volatile ConnectionStatus connectionStatusMessage = ConnectionStatus.CONNECTING;
     private final List<MessageObserver> observers;
     private boolean shutdownHookRegistered;
+    private volatile boolean browserSocketOpen;
 
     public ConnectionHandler() {
         this.sendQueue = new ConcurrentLinkedQueue<String>();
@@ -39,6 +40,11 @@ public class ConnectionHandler implements Runnable {
     }
 
     private void connect() {
+        if (BrowserWebSocketBridge.isAvailable()) {
+            connectInBrowser();
+            return;
+        }
+
         final Duration poll = Duration.ofSeconds(5);
 
         while (true) {
@@ -107,6 +113,59 @@ public class ConnectionHandler implements Runnable {
         }
     }
 
+    private void connectInBrowser() {
+        final Duration poll = Duration.ofSeconds(5);
+
+        while (true) {
+            try {
+                connectionStatusMessage = ConnectionStatus.CONNECTING;
+                browserSocketOpen = false;
+                BrowserWebSocketBridge.connect("ws://127.0.0.1:4173/connect");
+
+                while (true) {
+                    String error = BrowserWebSocketBridge.pollError();
+                    if (error != null) {
+                        onBrowserError(error);
+                    }
+
+                    if (BrowserWebSocketBridge.isOpen() && !browserSocketOpen) {
+                        onBrowserOpen();
+                    }
+
+                    String incoming = BrowserWebSocketBridge.pollMessage();
+                    while (incoming != null) {
+                        onBrowserMessage(incoming);
+                        incoming = BrowserWebSocketBridge.pollMessage();
+                    }
+
+                    String message = sendQueue.poll();
+                    if (message != null && BrowserWebSocketBridge.isOpen()) {
+                        BrowserWebSocketBridge.send(message);
+                    }
+
+                    if (browserSocketOpen && !BrowserWebSocketBridge.isOpen()) {
+                        onBrowserClose("Socket closed");
+                        break;
+                    }
+
+                    Thread.sleep(10);
+                }
+            } catch (InterruptedException interruptedException) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(interruptedException);
+            } catch (Exception exception) {
+                connectionStatusMessage = ConnectionStatus.FAILED;
+                System.err.println("Browser connection failed, retrying in " + poll.getSeconds() + " seconds...");
+                try {
+                    Thread.sleep(poll.toMillis());
+                } catch (InterruptedException interruptedException) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(interruptedException);
+                }
+            }
+        }
+    }
+
     private synchronized void registerShutdownHook(final WebSocketClient ws) {
         if (shutdownHookRegistered) {
             return;
@@ -126,16 +185,14 @@ public class ConnectionHandler implements Runnable {
         try {
             JsonReader reader = new JsonReader(new StringReader(message));
             reader.setLenient(true);
-            while (reader.peek() != JsonToken.END_DOCUMENT) {
-                JsonElement element = JsonParser.parseReader(reader);
-                if (element.isJsonObject()) {
-                    Map<String, Object> messageMap = GSON.fromJson(element, new TypeToken<Map<String, Object>>() {
-                    }.getType());
-                    observers.removeIf(observer -> !observer.observing());
-                    notifyObservers(messageMap);
-                } else {
-                    System.err.println("Received non-object JSON: " + element);
-                }
+            JsonElement element = JsonParser.parseReader(reader);
+            if (element != null && element.isJsonObject()) {
+                Map<String, Object> messageMap = GSON.fromJson(element, new TypeToken<Map<String, Object>>() {
+                }.getType());
+                observers.removeIf(observer -> !observer.observing());
+                notifyObservers(messageMap);
+            } else if (element != null) {
+                System.err.println("Received non-object JSON: " + element);
             }
             reader.close();
         } catch (Exception e) {
@@ -159,6 +216,34 @@ public class ConnectionHandler implements Runnable {
 
     public void addObserver(MessageObserver observer) {
         observers.add(observer);
+    }
+
+    public void onBrowserOpen() {
+        browserSocketOpen = true;
+        connectionStatusMessage = ConnectionStatus.SUCCESS;
+        System.out.println("Connected to server.");
+        if (Main.getUsername() != null) {
+            sendQueue.add(GSON.toJson(Maps.of(
+                    "request_type", "new-player",
+                    "data", Maps.of("username", Main.getUsername())
+            )));
+        }
+    }
+
+    public void onBrowserMessage(String message) {
+        parseMessage(message);
+    }
+
+    public void onBrowserClose(String reason) {
+        browserSocketOpen = false;
+        connectionStatusMessage = ConnectionStatus.FAILED;
+        System.out.println("WebSocket closed: " + reason);
+    }
+
+    public void onBrowserError(String error) {
+        browserSocketOpen = false;
+        connectionStatusMessage = ConnectionStatus.FAILED;
+        System.err.println("WebSocket error: " + error);
     }
 
     public static final class PlayerUpdateInfo {

@@ -36,7 +36,9 @@ public class PhysicsHandler {
             appliers.removeIf(applier -> !applier.getObject().tracked());
             appliers.forEach(applier -> {
                 if (applier != null) {
-                    applier.apply(dt);
+                    if (shouldApplyMovement(applier.getObject())) {
+                        applier.apply(dt);
+                    }
                     applier.prevVelocity.set(applier.gravityVelocity);
                 }
             });
@@ -50,9 +52,16 @@ public class PhysicsHandler {
 
     private void applyGravity(double dt) {
         appliers.forEach(applier -> {
+            if (applier.getObject() instanceof Opponent) {
+                return;
+            }
             Vec2 velocity = applier.getGravityVelocity();
             velocity.set(velocity.add(Vec2.of(0, GRAVITATIONAL_ACCELERATION * applier.getObject().getMass() * dt)));
         });
+    }
+
+    private boolean shouldApplyMovement(PhysicsObject object) {
+        return !(object instanceof Opponent);
     }
 
     private void handleWallCollisions() {
@@ -138,6 +147,15 @@ public class PhysicsHandler {
         Rectangle firstBounds = first.getCollisionPoly().getBounds();
         Rectangle secondBounds = second.getCollisionPoly().getBounds();
 
+        if (first instanceof Opponent && !(second instanceof Opponent)) {
+            separateAgainstStaticOpponent(second, secondBounds, firstBounds);
+            return;
+        }
+        if (second instanceof Opponent && !(first instanceof Opponent)) {
+            separateAgainstStaticOpponent(first, firstBounds, secondBounds);
+            return;
+        }
+
         double overlapX = Math.min(firstBounds.getMaxX() - secondBounds.getMinX(), secondBounds.getMaxX() - firstBounds.getMinX());
         double overlapY = Math.min(firstBounds.getMaxY() - secondBounds.getMinY(), secondBounds.getMaxY() - firstBounds.getMinY());
 
@@ -159,6 +177,23 @@ public class PhysicsHandler {
             first.getPosition().setY(first.getPosition().getY() + separation / 2);
             second.getPosition().setY(second.getPosition().getY() - separation / 2);
         }
+    }
+
+    private static void separateAgainstStaticOpponent(PhysicsObject object, Rectangle objectBounds, Rectangle opponentBounds) {
+        double overlapX = Math.min(objectBounds.getMaxX() - opponentBounds.getMinX(), opponentBounds.getMaxX() - objectBounds.getMinX());
+        double overlapY = Math.min(objectBounds.getMaxY() - opponentBounds.getMinY(), opponentBounds.getMaxY() - objectBounds.getMinY());
+
+        if (overlapX < overlapY) {
+            double separation = overlapX * (objectBounds.getCenterX() > opponentBounds.getCenterX() ? 1 : -1);
+            object.getPosition().setX(object.getPosition().getX() + separation);
+            return;
+        }
+
+        double separation = overlapY * (objectBounds.getCenterY() > opponentBounds.getCenterY() ? 1 : -1);
+        if (objectBounds.getCenterY() < opponentBounds.getCenterY() && object.getGravityApplier() != null) {
+            object.getGravityApplier().getGravityVelocity().set(zero());
+        }
+        object.getPosition().setY(object.getPosition().getY() + separation);
     }
 
     public List<PhysicsObject> getObjects() {

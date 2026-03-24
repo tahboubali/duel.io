@@ -99,10 +99,15 @@ public class Block implements PhysicsObject {
 
     @Override
     public void setPosition(Vec2 vec2) {
-        position.set(Vec2.of(
+        Vec2 constrained = Vec2.of(
                 max(0, min(vec2.getX(), Main.getGamePanel().getWidth() - WIDTH + .5)),
                 max(0, min(vec2.getY(), Main.getGamePanel().getHeight() - HEIGHT + .5))
-        ));
+        );
+        if (position == null) {
+            position = constrained;
+            return;
+        }
+        position.set(constrained);
     }
 
     @Override
@@ -202,5 +207,11 @@ public class Block implements PhysicsObject {
 
     public double getHealth() {
         return health;
+    }
+
+    public void restoreState(Vec2 position, double health, String id) {
+        this.position = position;
+        this.health = health;
+        this.id = id;
     }
 }
