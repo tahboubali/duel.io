@@ -11,7 +11,6 @@ public class Opponent extends Player implements ConnectionHandler.MessageObserve
 
     public Opponent(GamePanel gamePanel, String name) {
         super(gamePanel, name);
-        gamePanel.addPhysicsObject(this);
     }
 
     @Override
