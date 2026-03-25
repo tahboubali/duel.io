@@ -1,26 +1,46 @@
 package org.example;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public final class BrowserHarnessBridge {
+    private static final Map<String, String> QUERY_CACHE = new HashMap<String, String>();
+    private static Boolean available;
+
     private BrowserHarnessBridge() {
     }
 
     public static boolean isAvailable() {
-        try {
-            return nativeIsSupported();
-        } catch (UnsatisfiedLinkError error) {
-            return false;
+        if (available != null) {
+            return available.booleanValue();
         }
+        try {
+            available = Boolean.valueOf(nativeIsSupported());
+        } catch (UnsatisfiedLinkError error) {
+            available = Boolean.FALSE;
+        }
+        return available.booleanValue();
     }
 
     public static String getQueryParam(String key) {
+        synchronized (QUERY_CACHE) {
+            if (QUERY_CACHE.containsKey(key)) {
+                return QUERY_CACHE.get(key);
+            }
+        }
         if (!isAvailable()) {
             return null;
         }
+        String value = null;
         try {
-            return nativeGetQueryParam(key);
+            value = nativeGetQueryParam(key);
         } catch (UnsatisfiedLinkError error) {
-            return null;
+            // Ignore when not running in the browser harness.
         }
+        synchronized (QUERY_CACHE) {
+            QUERY_CACHE.put(key, value);
+        }
+        return value;
     }
 
     public static boolean isEnabled(String key) {

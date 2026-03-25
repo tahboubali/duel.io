@@ -53,6 +53,7 @@ public class TitleScreen extends JPanel implements ConnectionHandler.MessageObse
         this.autoPlayEnabled = BrowserHarnessBridge.isEnabled("autoplay");
         this.autoUsername = BrowserHarnessBridge.getQueryParam("username");
         connectionHandler.addObserver(this);
+        setBackground(Color.WHITE);
     }
 
     private void submit() {
@@ -63,6 +64,7 @@ public class TitleScreen extends JPanel implements ConnectionHandler.MessageObse
 
     @Override
     protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
         g.setFont(new Font(getFont().getFontName(), Font.ITALIC, 50));
         String titleString = "duel.io";
         Rectangle bounds = g.getFontMetrics().getStringBounds(titleString, g).getBounds();

@@ -50,7 +50,7 @@ public class ConnectionHandler implements Runnable {
         while (true) {
             try {
                 connectionStatusMessage = ConnectionStatus.CONNECTING;
-                final WebSocketClient ws = new WebSocketClient(new URI("ws://localhost:8080/connect")) {
+                final WebSocketClient ws = new WebSocketClient(new URI("ws://143.110.166.148:8081/connect")) {
                     @Override
                     public void onOpen(ServerHandshake handshakeData) {
                         connectionStatusMessage = ConnectionStatus.SUCCESS;
@@ -208,6 +208,10 @@ public class ConnectionHandler implements Runnable {
 
     public void sendMessage(Map<String, Object> message) {
         sendQueue.add(GSON.toJson(message));
+    }
+
+    public void sendRawMessage(String message) {
+        sendQueue.add(message);
     }
 
     public ConnectionStatus getConnectionStatus() {

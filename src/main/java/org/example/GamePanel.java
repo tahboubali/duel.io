@@ -1,11 +1,8 @@
 package org.example;
 
-import com.google.gson.reflect.TypeToken;
-
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Map;
 
 import static java.lang.Thread.sleep;
@@ -24,7 +21,7 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     private boolean matchmaking;
     private Player player;
     private Opponent opponent;
-    private Map<String, Object> prevUpdateInfo;
+    private String prevUpdateJson;
     private long lastSendUpdate;
     private boolean sentGameEnd;
     private boolean autoDuelQueued;
@@ -134,21 +131,12 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     }
 
     private void sendPlayerUpdate() {
-        Map<String, Object> updateInfo = GSON.fromJson(GSON.toJson(player.getUpdateInfo()), new TypeToken<Map<String, Object>>() {
-        }.getType());
-        if (prevUpdateInfo == null) {
-            prevUpdateInfo = updateInfo;
-        } else {
-            if (updateInfo.equals(prevUpdateInfo)) {
-                return;
-            }
-            updateInfo.keySet().removeIf(key -> updateInfo.get(key).equals(prevUpdateInfo.getOrDefault(key, null)));
+        String updateJson = GSON.toJson(player.getUpdateInfo());
+        if (prevUpdateJson != null && prevUpdateJson.equals(updateJson)) {
+            return;
         }
-        connectionHandler.sendMessage(Maps.of(
-                "request_type", "game-state",
-                "data", updateInfo
-        ));
-        prevUpdateInfo = updateInfo;
+        connectionHandler.sendRawMessage("{\"request_type\":\"game-state\",\"data\":" + updateJson + "}");
+        prevUpdateJson = updateJson;
         lastSendUpdate = System.currentTimeMillis();
     }
 
@@ -182,9 +170,6 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         if (opponent != null) {
             opponent.draw(g2d);
         }
-        if (Arrays.asList(getComponents()).contains(titleScreen)) {
-            titleScreen.repaint();
-        }
         g.dispose();
     }
 
@@ -208,6 +193,7 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         } else if ("game-end".equals(requestType)) {
             matchmaking = false;
             dueling = false;
+            prevUpdateJson = null;
             opponent.destroy();
             opponent = null;
             player.resetHealth();
@@ -220,6 +206,7 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
 
     private void enterDuel(Map<String, Object> message) {
         String position = (String) message.get("position");
+        prevUpdateJson = null;
         player.startDuel(position);
         opponent = new Opponent(this, (String) ((Map<?, ?>) message.get("match")).get("username"));
         connectionHandler.addObserver(opponent);
