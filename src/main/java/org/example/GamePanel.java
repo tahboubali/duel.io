@@ -170,7 +170,6 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         if (opponent != null) {
             opponent.draw(g2d);
         }
-        g.dispose();
     }
 
     public void addPhysicsObject(PhysicsObject object) {
