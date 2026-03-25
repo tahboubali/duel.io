@@ -11,7 +11,8 @@ target/
 *.iws
 *.iml
 *.ipr
-
+jarify.bash
+todos.txt
 ### Eclipse ###
 .apt_generated
 .classpath
