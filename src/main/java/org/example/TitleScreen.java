@@ -11,13 +11,10 @@ import static javax.swing.JOptionPane.showMessageDialog;
 
 public class TitleScreen extends JPanel implements ConnectionHandler.MessageObserver {
     private final int WIDTH = 500;
-    private final boolean autoPlayEnabled;
-    private final String autoUsername;
     private String username;
     private final JTextField text;
     private boolean registered;
     private boolean registrationPending;
-    private boolean autoPlayAttempted;
     private final ConnectionHandler connectionHandler;
 
     public TitleScreen(ConnectionHandler connectionHandler) {
@@ -50,8 +47,6 @@ public class TitleScreen extends JPanel implements ConnectionHandler.MessageObse
         submitBtn.setFocusable(true);
         add(submitBtn);
         this.connectionHandler = connectionHandler;
-        this.autoPlayEnabled = BrowserHarnessBridge.isEnabled("autoplay");
-        this.autoUsername = BrowserHarnessBridge.getQueryParam("username");
         connectionHandler.addObserver(this);
         setBackground(Color.WHITE);
     }
@@ -81,19 +76,10 @@ public class TitleScreen extends JPanel implements ConnectionHandler.MessageObse
         final Duration pollRate = Duration.ofMillis(100);
         String returnUsername = null;
         while (!registered) {
-            if (autoPlayEnabled && !autoPlayAttempted && username == null && autoUsername != null && !autoUsername.trim().isEmpty()) {
-                autoPlayAttempted = true;
-                text.setText(autoUsername);
-                setUsername(autoUsername);
-                BrowserHarnessBridge.reportStatus("auto submit username " + autoUsername);
-            }
-
             if (username != null && !registrationPending) {
                 if (connectionHandler.getConnectionStatus() != ConnectionHandler.ConnectionStatus.SUCCESS) {
-                    if (!autoPlayEnabled) {
-                        showMessageDialog(this, "Server is not running currently", "Error", JOptionPane.ERROR_MESSAGE);
-                        username = null;
-                    }
+                    showMessageDialog(this, "Server is not running currently", "Error", JOptionPane.ERROR_MESSAGE);
+                    username = null;
                 } else {
                     sendNewPlayer();
                     registrationPending = true;

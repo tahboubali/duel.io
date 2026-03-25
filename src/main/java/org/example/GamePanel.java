@@ -24,7 +24,6 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
     private String prevUpdateJson;
     private long lastSendUpdate;
     private boolean sentGameEnd;
-    private boolean autoDuelQueued;
 
     public GamePanel() {
         setBackground(Color.DARK_GRAY);
@@ -103,7 +102,6 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
         if (opponent != null) {
             opponent.update(dt);
         }
-        maybeAutoEnterDuel();
         if (dueling && System.currentTimeMillis() - lastSendUpdate >= 20) {
             sendPlayerUpdate();
         }
@@ -116,18 +114,6 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
             ));
             sentGameEnd = true;
         }
-    }
-
-    private void maybeAutoEnterDuel() {
-        if (!BrowserHarnessBridge.isEnabled("autoduel") || autoDuelQueued || player == null || dueling || matchmaking) {
-            return;
-        }
-        if (Main.getUsername() == null || connectionHandler.getConnectionStatus() != ConnectionHandler.ConnectionStatus.SUCCESS) {
-            return;
-        }
-        autoDuelQueued = true;
-        BrowserHarnessBridge.reportStatus("auto enter duel");
-        connectionHandler.sendMessage(Maps.of("request_type", "enter-duel"));
     }
 
     private void sendPlayerUpdate() {
