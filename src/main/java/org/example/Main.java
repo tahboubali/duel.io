@@ -22,6 +22,7 @@ public class Main {
         JLayeredPane layeredPane = new JLayeredPane();
         layeredPane.setPreferredSize(window.getSize());
         GamePanel game = new GamePanel();
+        window.setUndecorated(BrowserWebSocketBridge.isAvailable());
         int desiredWidth = 1500;
         int desiredHeight = (int) Math.round(0.5625 * desiredWidth);
         game.setSize(new Dimension(Math.min(windowSize.width, windowSize.width - (windowSize.width - desiredWidth)), Math.min(windowSize.height, windowSize.height - (windowSize.height - desiredHeight))));
