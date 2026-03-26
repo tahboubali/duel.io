@@ -142,7 +142,7 @@ public class GamePanel extends JPanel implements Runnable, MessageObserver {
             headerMessage = "Dueling \"" + opponent.getName() + "\"!";
         } else {
             headerMessage = "Enter a duel!";
-            headerColor = Color.BLACK;
+            headerColor = Color.WHITE;
         }
         int width = metrics.stringWidth(headerMessage);
         g2d.setColor(headerColor);

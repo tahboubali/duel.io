@@ -50,38 +50,7 @@ public class ConnectionHandler implements Runnable {
         while (true) {
             try {
                 connectionStatusMessage = ConnectionStatus.CONNECTING;
-                final WebSocketClient ws = new WebSocketClient(new URI("wss://dueliogame.com/connect")) {
-                    @Override
-                    public void onOpen(ServerHandshake handshakeData) {
-                        connectionStatusMessage = ConnectionStatus.SUCCESS;
-                        System.out.println("Connected to server.");
-                        if (Main.getUsername() != null) {
-                            sendQueue.add(GSON.toJson(Maps.of(
-                                    "request_type", "new-player",
-                                    "data", Maps.of("username", Main.getUsername())
-                            )));
-                        }
-                    }
-
-                    @Override
-                    public void onMessage(String message) {
-                        parseMessage(message);
-                    }
-
-                    @Override
-                    public void onClose(int statusCode, String reason, boolean remote) {
-                        System.out.println("WebSocket closed: " + reason);
-                        connectionStatusMessage = ConnectionStatus.FAILED;
-                    }
-
-                    @Override
-                    public void onError(Exception error) {
-                        System.err.println("WebSocket error: " + error.getMessage());
-                        connectionStatusMessage = ConnectionStatus.FAILED;
-                    }
-                };
-
-                ws.connectBlocking();
+                final WebSocketClient ws = getWebSocketClient();
                 registerShutdownHook(ws);
                 while (ws.isOpen()) {
                     String message = sendQueue.poll();
@@ -111,6 +80,42 @@ public class ConnectionHandler implements Runnable {
                 }
             }
         }
+    }
+
+    private WebSocketClient getWebSocketClient() throws URISyntaxException, InterruptedException {
+        final WebSocketClient ws = new WebSocketClient(new URI("wss://dueliogame.com/connect")) {
+            @Override
+            public void onOpen(ServerHandshake handshakeData) {
+                connectionStatusMessage = ConnectionStatus.SUCCESS;
+                System.out.println("Connected to server.");
+                if (Main.getUsername() != null) {
+                    sendQueue.add(GSON.toJson(Maps.of(
+                            "request_type", "new-player",
+                            "data", Maps.of("username", Main.getUsername())
+                    )));
+                }
+            }
+
+            @Override
+            public void onMessage(String message) {
+                parseMessage(message);
+            }
+
+            @Override
+            public void onClose(int statusCode, String reason, boolean remote) {
+                System.out.println("WebSocket closed: " + reason);
+                connectionStatusMessage = ConnectionStatus.FAILED;
+            }
+
+            @Override
+            public void onError(Exception error) {
+                System.err.println("WebSocket error: " + error.getMessage());
+                connectionStatusMessage = ConnectionStatus.FAILED;
+            }
+        };
+
+        ws.connectBlocking();
+        return ws;
     }
 
     private void connectInBrowser() {

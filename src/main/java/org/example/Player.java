@@ -41,6 +41,7 @@ public class Player implements PhysicsObject {
     private PhysicsHandler.GravityApplier gravityApplier;
     private long lastCollision;
     private double health;
+    private double ammoLeft;
 
     public Player(GamePanel gamePanel, String name) {
         this.gamePanel = gamePanel;
@@ -172,6 +173,10 @@ public class Player implements PhysicsObject {
 
     protected void setHealth(double health) {
         this.health = health;
+    }
+
+    protected void setAmmoLeft(double ammoLeft) {
+        this.ammoLeft = ammoLeft;
     }
 
     public void resetHealth() {
